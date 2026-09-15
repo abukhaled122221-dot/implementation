@@ -17,6 +17,3 @@ thiqa_implementation/implementation/
 │       └── index.html          # الواجهة الأمامية (متصلة بالخلادم عبر /api/recommend)
 ├── .gitignore                  # ملفات ومجلدات مستبعدة من git
 └── README.md                   # هذا الملف
-```
-
-> **ملاحظة**: المجلدات `.git/`, `node_modules/`, و `__pycache__/` هي مجلدات داخلية تُدار تلقائيًا ولا تحتاج للتعديل手ويًا.
