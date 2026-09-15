@@ -84,9 +84,6 @@ thiqa_implementation/implementation/
 │   ├── package.json            # إعدادات المشروع ونصوص التشغيل
 │   └── public/                 # الملفات الثابتة التي يخدمها الخادم
 │       └── index.html          # الواجهة الأمامية (متصلة بالخلادم عبر /api/recommend)
-├── docs/                       # توثيق ومرفقات من المرحلة الأولى
-│   ├── THIQA_Car_Insurance_Report.pdf   # تقرير مفصل من فيز 1
-│   └── THIQA_Car_Insurance_Presentation.pptx  # عرض تقديمي من فيز 1
 ├── .gitignore                  # ملفات ومجلدات مستبعدة من git
 └── README.md                   # هذا الملف
 ```
