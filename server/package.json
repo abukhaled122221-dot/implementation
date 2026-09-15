@@ -1,0 +1,13 @@
+{
+  "name": "thiqa-server",
+  "version": "1.0.0",
+  "description": "Thiqa Car Insurance - Node.js orchestrator/server (Layer 1 + gateway to Layer 2 agents)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

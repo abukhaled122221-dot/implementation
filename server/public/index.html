@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة ثقة للتأمين الذكي - Thiqa AI Insurance Advisor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eefdf4',
+                            100: '#d7fbe4',
+                            500: '#10b981', /* زمردي سعودي راقي */
+                            600: '#059669',
+                            700: '#047857',
+                            900: '#064e3b',
+                        },
+                        navy: {
+                            800: '#0f172a', /* كحلي ملكي */
+                            900: '#020617',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Tajawal', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: #f8fafc;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-100 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-brand-500 flex items-center justify-center text-white text-2xl shadow-lg shadow-brand-500/20">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-black text-navy-800 tracking-tight leading-none">ثقة للتأمين الذكي</h1>
+                    <span class="text-xs text-brand-600 font-bold">بوابتك الذكية لمقارنة وتوصية وثائق تأمين السيارات فوراً</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex flex-col justify-center">
+        
+        <div id="tab-home" class="tab-content transition-all duration-300">
+            <div class="text-center max-w-3xl mx-auto my-12">
+                <span class="bg-brand-50 text-brand-600 text-sm font-black px-4 py-2 rounded-full border border-brand-100 uppercase tracking-wider mb-6 inline-block">
+                    وداعاً للحيرة وأهلاً بالوضوح والراحة في اختيار تأمينك مع ثقة ⚡
+                </span>
+                <h2 class="text-4xl md:text-5xl font-black text-navy-800 leading-tight mb-6">
+                    قارن عروض التأمين الفورية واحصل على <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-emerald-500">التوصية الأنسب</span> لسيارتك بلمحة واحدة
+                </h2>
+                <p class="text-lg text-slate-600 mb-10 leading-relaxed">
+                    نحن في منصة ثقة لا نكتفي بعرض أسعار شركات التأمين فحسب؛ بل نقوم بتحليل تفاصيل العروض الذكية لنمنحك أفضل خيار يطابق رغبتك وميزانيتك مع تبرير واضح ومبسط ومباشر.
+                </p>
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <button onclick="switchTab('tab-form')" class="w-full sm:w-auto bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-700 hover:to-brand-600 text-white font-bold px-10 py-5.5 rounded-2xl shadow-lg shadow-brand-500/20 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2 text-md">
+                         ابدأ المقارنة الذكية الآن <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 my-16">
+                <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition">
+                    <div class="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center text-xl mb-6">
+                        <i class="fa-solid fa-id-card"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-navy-800 mb-3">ربط فوري ومباشر لخصوماتك</h3>
+                    <p class="text-slate-600 leading-relaxed text-sm">
+                        ندمج بياناتك تلقائياً مع السجلات الرسمية لتقدير خصومات نظام "نجم" وتحديد تفاصيل المركبة بمجرد إدخال البيانات المطلوبة.
+                    </p>
+                </div>
+                <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition">
+                    <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl mb-6">
+                        <i class="fa-solid fa-brain"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-navy-800 mb-3">تحليل حي وبدون تحيز</h3>
+                    <p class="text-slate-600 leading-relaxed text-sm">
+                        يقوم نظام ثقة بمقارنة العروض بناءً على أولويتك ومصلحتك؛ هل تبحث عن السعر الأوفر، أم سرعة تسوية المطالبات، أم المزايا الأوسع؟
+                    </p>
+                </div>
+                <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition">
+                    <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl mb-6">
+                        <i class="fa-solid fa-heart-pulse"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-navy-800 mb-3">توصية واضحة ومبسطة جداً</h3>
+                    <p class="text-slate-600 leading-relaxed text-sm">
+                        لا داعي لقراءة شروط الوثيقة والكتيبات الطويلة. منصة ثقة تمنحك قراراً واثقاً وسريعاً عبر توضيح أهم المميزات والعيوب بكلمات بسيطة.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-form" class="tab-content hidden transition-all duration-300">
+            <div class="max-w-3xl mx-auto">
+                <button onclick="switchTab('tab-home')" class="text-slate-500 hover:text-navy-800 font-semibold mb-6 flex items-center gap-2 transition">
+                    <i class="fa-solid fa-arrow-right"></i> العودة للرئيسية
+                </button>
+
+                <div class="bg-gradient-to-tr from-navy-900 to-navy-800 text-white p-8 rounded-t-3xl shadow-sm">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-2xl text-brand-500">
+                            <i class="fa-solid fa-file-invoice"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-black">قارن عروض سيارتك واحصل على توصيتك فوراً</h2>
+                            <p class="text-slate-300 text-sm mt-1.5">يرجى إدخال البيانات الأساسية بالأسفل لنساعدك في اختيار التغطية التأمينية الأنسب والأوفر</p>
+                        </div>
+                    </div>
+                </div>
+
+                <form id="insuranceForm" onsubmit="handleFormSubmit(event)" class="bg-white p-8 rounded-b-3xl border border-t-0 border-slate-200 shadow-sm space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="text-sm font-bold text-slate-700">رقم الهوية الوطنية / الإقامة <span class="text-red-500">*</span></label>
+                                <div class="group relative flex items-center">
+                                    <i class="fa-regular fa-lightbulb text-amber-500 hover:text-amber-600 cursor-pointer text-sm animate-bounce"></i>
+                                    <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 w-56 -translate-x-1/2 rounded-xl bg-slate-900 p-3 text-xs font-normal text-white shadow-xl opacity-0 transition-opacity duration-200 group-hover:opacity-100 leading-relaxed text-center">
+                                        يستخدم رقم الهوية لربط خصومات منصة "نجم" لعدم وجود مطالبات حوادث سابقة (والتي قد تمنحك خصماً يصل إلى 60%).
+                                        <svg class="absolute top-full left-1/2 -mt-1 h-2 w-4 -translate-x-1/2 text-slate-900" fill="currentColor" viewBox="0 0 16 8"><path d="M8 8l8-8H0z"/></svg>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400">
+                                    <i class="fa-solid fa-address-card"></i>
+                                </span>
+                                <input type="text" id="idNumber" required placeholder="مثال: 10XXXXXXXX" maxlength="10" minlength="10"
+                                    class="w-full pr-11 pl-4 py-3.5 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 font-mono transition">
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="text-sm font-bold text-slate-700">الرقم التسلسلي للمركبة <span class="text-red-500">*</span></label>
+                                <div class="group relative flex items-center">
+                                    <i class="fa-regular fa-lightbulb text-amber-500 hover:text-amber-600 cursor-pointer text-sm animate-bounce"></i>
+                                    <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 w-56 -translate-x-1/2 rounded-xl bg-slate-900 p-3 text-xs font-normal text-white shadow-xl opacity-0 transition-opacity duration-200 group-hover:opacity-100 leading-relaxed text-center">
+                                        يُسحب تفاصيل وبيانات سيارتك (مثل الموديل، القيمة التقديرية، وحجم المحرك) تلقائياً وآمنياً من قواعد المرور الرسمية.
+                                        <svg class="absolute top-full left-1/2 -mt-1 h-2 w-4 -translate-x-1/2 text-slate-900" fill="currentColor" viewBox="0 0 16 8"><path d="M8 8l8-8H0z"/></svg>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400">
+                                    <i class="fa-solid fa-car"></i>
+                                </span>
+                                <input type="text" id="sequenceNumber" required placeholder="مثال: 123456789" maxlength="9"
+                                    class="w-full pr-11 pl-4 py-3.5 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 font-mono transition">
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="text-sm font-bold text-slate-700">تاريخ الميلاد <span class="text-red-500">*</span></label>
+                                <div class="group relative flex items-center">
+                                    <i class="fa-regular fa-lightbulb text-amber-500 hover:text-amber-600 cursor-pointer text-sm animate-bounce"></i>
+                                    <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 w-56 -translate-x-1/2 rounded-xl bg-slate-900 p-3 text-xs font-normal text-white shadow-xl opacity-0 transition-opacity duration-200 group-hover:opacity-100 leading-relaxed text-center">
+                                        يُستخدم تاريخ ميلادك لتحديد الفئة العمرية بدقة كأحد الشروط الأساسية لحساب نسبة التسعير وحسم الخصومات.
+                                        <svg class="absolute top-full left-1/2 -mt-1 h-2 w-4 -translate-x-1/2 text-slate-900" fill="currentColor" viewBox="0 0 16 8"><path d="M8 8l8-8H0z"/></svg>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2">
+                                <select id="birthDay" required class="py-3 px-2 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                                    <option value="">اليوم</option>
+                                    <script>for(let i=1;i<=31;i++) document.write(`<option value="${i}">${i}</option>`);</script>
+                                </select>
+                                <select id="birthMonth" required class="py-3 px-2 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                                    <option value="">الشهر</option>
+                                    <option value="1">يناير / محرم</option>
+                                    <option value="2">فبراير / صفر</option>
+                                    <option value="3">مارس / ربيع أول</option>
+                                    <option value="4">أبريل / ربيع ثاني</option>
+                                    <option value="5">مايو / جمادى أول</option>
+                                    <option value="6">يونيو / جمادى ثاني</option>
+                                    <option value="7">يوليو / رجب</option>
+                                    <option value="8">أغسطس / شعبان</option>
+                                    <option value="9">سبتمبر / رمضان</option>
+                                    <option value="10">أكتوبر / شوال</option>
+                                    <option value="11">نوفمبر / ذو القعدة</option>
+                                    <option value="12">ديسمبر / ذو الحجة</option>
+                                </select>
+                                <select id="birthYear" required class="py-3 px-2 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono">
+                                    <option value="">السنة</option>
+                                    <script>for(let i=2008;i>=1950;i--) document.write(`<option value="${i}">${i}</option>`);</script>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">الغرض الأساسي للمركبة وممشى السنة <span class="text-red-500">*</span></label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <select id="vehiclePurpose" required class="py-3.5 px-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                                    <option value="personal">استخدام شخصي / يومي</option>
+                                    <option value="commercial">تجاري / توصيل مشاوير</option>
+                                    <option value="family">استخدام عائلي فقط</option>
+                                </select>
+                                <select id="mileage" required class="py-3.5 px-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                                    <option value="low">أقل من 10k كم سنوياً</option>
+                                    <option value="medium" selected>10k - 25k كم سنوياً</option>
+                                    <option value="high">أكثر من 25k كم سنوياً</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">نوع التغطية المفضلة <span class="text-red-500">*</span></label>
+                            <div class="grid grid-cols-2 gap-4">
+                                <label class="border-2 border-slate-200 rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer transition hover:bg-slate-50 relative" id="tpl-label">
+                                    <input type="radio" name="coverageType" value="TPL" checked class="absolute top-3 left-3 accent-brand-500">
+                                    <i class="fa-solid fa-car-crash text-2xl mb-2 text-slate-400" id="tpl-icon"></i>
+                                    <span class="font-bold text-sm text-slate-700">ضد الغير (TPL)</span>
+                                    <span class="text-xs text-slate-400 mt-1 text-center">التأمين الإلزامي القياسي للأضرار للغير</span>
+                                </label>
+                                <label class="border-2 border-slate-200 rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer transition hover:bg-slate-50 relative" id="comp-label">
+                                    <input type="radio" name="coverageType" value="Comprehensive" class="absolute top-3 left-3 accent-brand-500">
+                                    <i class="fa-solid fa-shield-cat text-2xl mb-2 text-slate-400" id="comp-icon"></i>
+                                    <span class="font-bold text-sm text-slate-700">تأمين شامل</span>
+                                    <span class="text-xs text-slate-400 mt-1 text-center">تغطية شاملة لحماية سيارتك والآخرين</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="text-sm font-bold text-slate-700">ما هي الأولوية التي تهمك أكثر؟ <span class="text-red-500">*</span></label>
+                                <div class="group relative flex items-center">
+                                    <i class="fa-regular fa-lightbulb text-amber-500 hover:text-amber-600 cursor-pointer text-sm animate-bounce"></i>
+                                    <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 w-56 -translate-x-1/2 rounded-xl bg-slate-900 p-3 text-xs font-normal text-white shadow-xl opacity-0 transition-opacity duration-200 group-hover:opacity-100 leading-relaxed text-center">
+                                        يقوم نظام المستشار الذكي بمطابقة هذه الرغبة تلقائياً لتصفية العروض المرتجعة وترشيح الخيار الفعلي الأنسب لاحتياجك.
+                                        <svg class="absolute top-full left-1/2 -mt-1 h-2 w-4 -translate-x-1/2 text-slate-900" fill="currentColor" viewBox="0 0 16 8"><path d="M8 8l8-8H0z"/></svg>
+                                    </span>
+                                </div>
+                            </div>
+                            <select id="userPriority" required class="w-full py-3.5 px-4 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 transition font-medium">
+                                <option value="Budget" selected>الحصول على السعر الأوفر والأنسب (ميزانية اقتصادية)</option>
+                                <option value="Service">سرعة وسهولة معالجة المطالبات وورش الإصلاح المضمونة</option>
+                                <option value="Digital">أفضل ميزات تقنية وتطبيق للجوال لحل كل شيء بلمسة زر</option>
+                                <option value="Balanced">خيار عادل وموزون يجمع بين السعر المناسب والخدمة الممتازة</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div class="flex items-start gap-2.5">
+                            <input type="checkbox" required checked id="consent" class="mt-1.5 accent-brand-500 cursor-pointer">
+                            <label for="consent" class="text-xs text-slate-500 leading-normal cursor-pointer select-none">
+                                أوافق على الاستعلام الفوري والمباشر عن خصومات القيادة الآمنة والبيانات الفنية لسيارتي لعرض التغطيات المتاحة بدقة.
+                            </label>
+                        </div>
+                        <button type="submit" class="w-full sm:w-auto bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-700 hover:to-brand-600 text-white font-bold px-10 py-4.5 rounded-2xl shadow-lg shadow-brand-500/10 transition transform hover:-translate-y-0.5">
+                            تحليل العروض وإظهار التوصية فوراً <i class="fa-solid fa-arrow-left mr-1.5"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="tab-pipeline" class="tab-content hidden transition-all duration-300">
+            <div class="max-w-lg mx-auto text-center py-16 px-4 bg-white rounded-3xl border border-slate-100 shadow-md">
+                <div class="relative w-28 h-28 mx-auto mb-8 flex items-center justify-center">
+                    <div class="absolute inset-0 border-4 border-slate-100 border-t-brand-500 rounded-full animate-spin"></div>
+                    <div class="text-brand-500 text-4xl animate-pulse">
+                        <i class="fa-solid fa-hourglass-half"></i>
+                    </div>
+                </div>
+
+                <h2 class="text-2xl font-black text-navy-800 mb-3" id="loading-title">جاري البحث ومطابقة العروض...</h2>
+                <p class="text-slate-500 text-sm max-w-sm mx-auto leading-relaxed" id="loading-status">
+                    الرجاء الانتظار لحظة؛ نقوم حالياً بفحص سجل خصوماتك في نجم وسحب أسعار شركات التأمين السعودية لتنسيق أفضل باقة تناسبك.
+                </p>
+
+                <div class="mt-10 pt-6 border-t border-slate-100 flex justify-center items-center gap-6 text-xs font-semibold text-slate-400">
+                    <span id="step-ncd" class="flex items-center gap-1.5 text-brand-600"><i class="fa-solid fa-circle-check"></i> فحص خصم نجم</span>
+                    <span id="step-api" class="flex items-center gap-1.5"><i class="fa-solid fa-circle animate-pulse"></i> جلب تسعيرات الشركات</span>
+                    <span id="step-sort" class="flex items-center gap-1.5"><i class="fa-solid fa-circle"></i> ترشيح الأفضل</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-results" class="tab-content hidden transition-all duration-300">
+            <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-8 bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                <div>
+                    <span class="text-xs font-bold text-brand-600 uppercase tracking-widest block mb-1">تحليل فوري فائق الدقة بفضل الذكاء الاصطناعي من ثقة</span>
+                    <h2 class="text-2xl font-black text-navy-800 flex items-center gap-2">
+                        باقة التأمين المقترحة بناءً على اختيارك: <span class="bg-brand-50 text-brand-700 text-xs px-2.5 py-1.5 rounded-lg border border-brand-100" id="result-priority-lbl">خيار متوازن</span>
+                    </h2>
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="bg-slate-100 px-4 py-2.5 rounded-2xl text-xs font-bold text-slate-600 border border-slate-200">
+                        <i class="fa-solid fa-id-badge ml-1 text-slate-400"></i> رقم الهوية: <span id="res-id" class="font-mono">1098****32</span>
+                    </div>
+                    <div class="bg-slate-100 px-4 py-2.5 rounded-2xl text-xs font-bold text-slate-600 border border-slate-200">
+                        <i class="fa-solid fa-car ml-1 text-slate-400"></i> الرقم التسلسلي: <span id="res-seq" class="font-mono">827***91</span>
+                    </div>
+                    <div class="bg-brand-50 px-4 py-2.5 rounded-2xl text-xs font-bold text-brand-700 border border-brand-100">
+                        <i class="fa-solid fa-gift ml-1 text-brand-500"></i> خصم نجم المستحق: <span id="res-discount" class="font-mono">40%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2 space-y-6">
+                    
+                    <div class="bg-gradient-to-br from-brand-900 via-navy-900 to-navy-900 text-white rounded-3xl p-8 shadow-xl relative overflow-hidden">
+                        <div class="absolute -right-24 -bottom-24 w-80 h-80 bg-brand-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                        <div class="absolute -left-24 -top-24 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                        <div class="relative z-10">
+                            <span class="bg-brand-500 text-white text-xs font-black px-3.5 py-1.5 rounded-full uppercase tracking-wider mb-6 inline-block">
+                                <i class="fa-solid fa-crown ml-1"></i> العرض الفائز بالتوصية الأولى من ثقة
+                            </span>
+
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-16 h-16 rounded-2xl bg-white flex items-center justify-center p-2 shadow-lg" id="winner-logo-container">
+                                        </div>
+                                    <div>
+                                        <h3 class="text-2xl font-black text-white" id="winner-company-name">راجحي تكافل</h3>
+                                        <span class="text-xs text-brand-300 font-bold" id="winner-coverage-type">وثيقة تأمين شامل</span>
+                                    </div>
+                                </div>
+                                <div class="text-right sm:text-left">
+                                    <span class="text-xs text-slate-300 block">السعر الإجمالي المقدر للوثيقة</span>
+                                    <div class="text-3xl font-black text-brand-400" id="winner-price">1,680 ر.س</div>
+                                    <span class="text-xs text-brand-300 font-medium" id="winner-savings">تم توفير 250 ر.س تقريباً</span>
+                                </div>
+                            </div>
+
+                            <div class="bg-white/5 border border-white/10 rounded-2xl p-6 mb-6">
+                                <h4 class="font-bold text-brand-400 text-sm mb-2 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-user-tie"></i> مستشار تأمين ثقة الذكي:
+                                </h4>
+                                <p class="text-slate-200 text-sm leading-relaxed" id="winner-advice">
+                                    تم اختيار "راجحي تكافل" كخيار أول لأنه يحقق الأولوية المتوازنة التي حددتها بنسبة ملاءمة بلغت 92%. بالرغم من وجود عرض أرخص سعراً بقيمة (80 ريال فرق)، إلا أن هذا العرض يمنحك ميزة الإصلاح داخل ورش معتمدة متميزة وتجربة مطالبات رقمية خالية من المتاعب بالكامل.
+                                </p>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div class="bg-brand-500/5 border border-brand-500/20 rounded-xl p-4">
+                                    <span class="text-xs font-bold text-brand-400 block mb-1.5"><i class="fa-solid fa-circle-check"></i> ميزات تجعل هذا الخيار أفضل لك:</span>
+                                    <ul class="text-slate-300 text-xs space-y-1.5 list-disc list-inside" id="winner-pros">
+                                        <li>خصم عدم وجود مطالبات فعال ومطبق بنسبة 40%</li>
+                                        <li>إمكانية إضافة ميزة السيارة البديلة مجاناً</li>
+                                        <li>تسوية رقمية فورية للمطالبات عبر تطبيق ثقة</li>
+                                    </ul>
+                                </div>
+                                <div class="bg-red-500/5 border border-red-500/20 rounded-xl p-4">
+                                    <span class="text-xs font-bold text-red-400 block mb-1.5"><i class="fa-solid fa-circle-exclamation"></i> عيوب أو شروط يجب الانتباه لها:</span>
+                                    <ul class="text-slate-300 text-xs space-y-1.5 list-disc list-inside" id="winner-cons">
+                                        <li>قيمة التحمل تبلغ 1000 ريال في حال الحوادث المجهولة</li>
+                                        <li>لا تشمل ميزة إصلاح الوكالة بشكل مجاني</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+                        <h3 class="text-lg font-black text-navy-800 mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-brand-500"></i> باقي عروض شركات التأمين البديلة في منصة ثقة
+                        </h3>
+                        <div class="space-y-4" id="alternatives-container">
+                            </div>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    
+                    <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+                        <h3 class="text-md font-black text-navy-800 mb-3"><i class="fa-solid fa-sliders text-brand-500 ml-1"></i> تغيير أولوية البحث فوراً</h3>
+                        <p class="text-xs text-slate-500 leading-relaxed mb-4">
+                            هل تغير تفضيلك وتريد رؤية عروض موجهة نحو السعر أو الميزات أكثر؟ قم بتعديل خيارك بالأسفل وسيقوم مستشار ثقة بإعادة ترشيح الأفضل فوراً:
+                        </p>
+                        <div class="space-y-2">
+                            <button onclick="changePriorityOnTheFly('Budget')" id="btn-p-Budget" class="w-full text-right py-3.5 px-4 rounded-xl text-xs font-bold border transition flex items-center justify-between">
+                                <span><i class="fa-solid fa-tags ml-2 text-brand-500"></i> أوفر ميزانية وأقل سعر</span>
+                                <i class="fa-solid fa-chevron-left text-slate-400"></i>
+                            </button>
+                            <button onclick="changePriorityOnTheFly('Service')" id="btn-p-Service" class="w-full text-right py-3.5 px-4 rounded-xl text-xs font-bold border transition flex items-center justify-between">
+                                <span><i class="fa-solid fa-handshake-angle ml-2 text-brand-500"></i> كفاءة الخدمة وسرعة المطالبة</span>
+                                <i class="fa-solid fa-chevron-left text-slate-400"></i>
+                            </button>
+                            <button onclick="changePriorityOnTheFly('Digital')" id="btn-p-Digital" class="w-full text-right py-3.5 px-4 rounded-xl text-xs font-bold border transition flex items-center justify-between">
+                                <span><i class="fa-solid fa-mobile-screen-button ml-2 text-brand-500"></i> ميزات رقمية وتطبيق سهل</span>
+                                <i class="fa-solid fa-chevron-left text-slate-400"></i>
+                            </button>
+                            <button onclick="changePriorityOnTheFly('Balanced')" id="btn-p-Balanced" class="w-full text-right py-3.5 px-4 rounded-xl text-xs font-bold border transition flex items-center justify-between">
+                                <span><i class="fa-solid fa-balance-scale ml-2 text-brand-500"></i> القيمة مقابل السعر (متوازن)</span>
+                                <i class="fa-solid fa-chevron-left text-slate-400"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button onclick="switchTab('tab-form')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-4 rounded-2xl border border-slate-300 transition text-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-rotate-left text-slate-500"></i> فحص سيارة أو هوية أخرى
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="bg-navy-900 text-slate-400 py-10 border-t border-slate-800 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4">
+            <p class="text-xs leading-relaxed max-w-2xl mx-auto">
+                <strong class="text-white">إخلاء مسؤولية توضيحي:</strong> منصة ثقة هي نموذج أولي تفاعلي مصمم لمساعدة مالكي السيارات في اتخاذ قرارات تأمينية صائبة. الأسعار والخصومات والتوصيات المعروضة هي محاكاة تفاعلية تستند إلى الممارسات التأمينية المطبقة بالمملكة العربية السعودية بالتنسيق مع أسس تسعير البنك المركزي السعودي (SAMA).
+            </p>
+            <div class="border-t border-slate-800/80 pt-4 flex flex-col md:flex-row items-center justify-between text-[11px] text-slate-500 gap-2">
+                <span>© 2026 بوابة ثقة لمقارنة وتوصيات تأمين السيارات الذكية. جميع الحقوق محفوظة.</span>
+                <span>تطبيق يخدم قائد المركبة في المملكة العربية السعودية</span>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Global State & Simulation Database
+        // Inspired by real Saudi car insurance providers profiles in SAMA unified motor policy
+        const mockProviders = [
+            {
+                id: 'tawuniya',
+                name: 'التعاونية للتأمين',
+                logo: `<div class="w-12 h-12 bg-emerald-600 text-white font-black rounded-xl flex items-center justify-center text-sm">T</div>`,
+                tplBase: 700,
+                compBaseRate: 0.0285, // 2.85%
+                serviceScore: 95, // Excel in claims & agency networks
+                digitalScore: 82,
+                pros: ['أقوى وأوسع شبكة إصلاح داخل المملكة المعتمدة', 'ميزة الاستبدال الفوري للسيارة متوفرة بيسر وسهولة', 'تسوية مطالبات سريعة وحضور جغرافي متميز في كل مناطق المملكة'],
+                cons: ['الأسعار والرسوم مرتفعة نسبياً مقارنة بالمنافسين المتاحين', 'رسوم إضافية لطلب تغطية التوسيع الجغرافي الخليجي']
+            },
+            {
+                id: 'rajhi',
+                name: 'الراجحي تكافل',
+                logo: `<div class="w-12 h-12 bg-blue-600 text-white font-black rounded-xl flex items-center justify-center text-sm">R</div>`,
+                tplBase: 735,
+                compBaseRate: 0.0250, // 2.50%
+                serviceScore: 88,
+                digitalScore: 96, // Excel in app convenience and quick online purchase
+                pros: ['تطبيق جوال فائق السهولة لشراء وتتبع كل تفاصيل الوثيقة ورفع المطالبات والمتابعة', 'تأمين متميز ومتوافق بالكامل مع أحكام الشريعة الإسلامية', 'سرعة إلكترونية فائقة وفورية في إصدار وثيقة تأمين السيارة'],
+                cons: ['تغطية شبكة ورش الإصلاح قد تكون أقل في المدن والمناطق الفرعية']
+            },
+            {
+                id: 'medgulf',
+                name: 'ميدغلف للتأمين',
+                logo: `<div class="w-12 h-12 bg-amber-500 text-white font-black rounded-xl flex items-center justify-center text-sm">M</div>`,
+                tplBase: 680,
+                compBaseRate: 0.0265, // 2.65%
+                serviceScore: 85,
+                digitalScore: 88,
+                pros: ['أسعار منافسة جداً لسيارات العائلات وسيارات الدفع الرباعي', 'تقدير تكاليف وإجراءات حجز حية وسريعة بالكامل عبر الويب'],
+                cons: ['وقت مراجعة المطالبات المكتوبة قد يحتاج إلى أيام عمل إضافية']
+            },
+            {
+                id: 'acig',
+                name: 'المجموعة المتحدة للتأمين (ACIG)',
+                logo: `<div class="w-12 h-12 bg-red-600 text-white font-black rounded-xl flex items-center justify-center text-xs">ACIG</div>`,
+                tplBase: 620,
+                compBaseRate: 0.0210, // 2.10% (Usually cheapest in standard packages)
+                serviceScore: 74,
+                digitalScore: 78,
+                pros: ['أفضل وأرخص سعر للتأمين ضد الغير في فئات متعددة بالمنصة', 'خيارات ترقية مرنة وخفيفة للوثائق الشاملة لتناسب الميزانيات الاقتصادية'],
+                cons: ['الإجراءات قد تتطلب في بعض الحالات زيارة فروع الصيانة والتقدير يدوياً']
+            }
+        ];
+
+        // Active memory for evaluated user session
+        let currentFormData = {};
+        let finalComputedOffers = [];
+
+        // Tab Switcher Controller (SPA Mock)
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(tabId).classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Form Submit handler
+        function handleFormSubmit(event) {
+            event.preventDefault();
+            
+            // Gather values
+            currentFormData = {
+                idNumber: document.getElementById('idNumber').value,
+                sequenceNumber: document.getElementById('sequenceNumber').value,
+                birthYear: parseInt(document.getElementById('birthYear').value),
+                vehiclePurpose: document.getElementById('vehiclePurpose').value,
+                mileage: document.getElementById('mileage').value,
+                coverageType: document.querySelector('input[name="coverageType"]:checked').value,
+                userPriority: document.getElementById('userPriority').value
+            };
+
+            // Switch to pipeline live loader screen
+            switchTab('tab-pipeline');
+            runLive3AgentsSimulation();
+        }
+
+        // Modern hourglass / clean loading simulation for the customer
+        function runLive3AgentsSimulation() {
+            const titleEl = document.getElementById('loading-title');
+            const statusEl = document.getElementById('loading-status');
+            const stepNcd = document.getElementById('step-ncd');
+            const stepApi = document.getElementById('step-api');
+            const stepSort = document.getElementById('step-sort');
+
+            // Reset step UI states
+            stepNcd.className = "flex items-center gap-1.5 text-brand-500 font-bold";
+            stepApi.className = "flex items-center gap-1.5 text-slate-300";
+            stepSort.className = "flex items-center gap-1.5 text-slate-300";
+
+            // Stage 1: Check NCD
+            setTimeout(() => {
+                titleEl.innerHTML = "جاري التحقق من الخصومات...";
+                statusEl.innerHTML = "نقوم الآن بالتواصل مع بوابة نجم لحساب سنوات القيادة الآمنة وتطبيق الخصومات المستحقة لك تلقائياً عبر نظام ثقة.";
+                stepNcd.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin text-brand-500"></i> فحص خصم نجم`;
+                stepNcd.className = "flex items-center gap-1.5 text-brand-600 font-bold";
+            }, 100);
+
+            // Stage 2: Fetch and align API responses
+            setTimeout(() => {
+                titleEl.innerHTML = "جاري جلب أسعار شركات التأمين...";
+                statusEl.innerHTML = "نتصل الآن بقواعد بيانات تسعير شركات التأمين المرخصة لنسحب عروض الأسعار والمزايا المتطابقة مع مواصفات سيارتك.";
+                stepNcd.innerHTML = `<i class="fa-solid fa-circle-check text-brand-500"></i> تم التحقق من نجم`;
+                stepNcd.className = "flex items-center gap-1.5 text-slate-500 font-normal";
+
+                stepApi.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin text-indigo-500"></i> جلب تسعيرات الشركات`;
+                stepApi.className = "flex items-center gap-1.5 text-indigo-600 font-bold";
+            }, 1200);
+
+            // Stage 3: Dynamic recommendation sorting
+            setTimeout(() => {
+                titleEl.innerHTML = "جاري ترتيب التوصيات الأنسب...";
+                statusEl.innerHTML = "مستشار ثقة الذكي يقوم حالياً بمقارنة الأسعار مع المزايا وجودة معالجة المطالبات لاختيار وثيقتك الفائزة.";
+                stepApi.innerHTML = `<i class="fa-solid fa-circle-check text-indigo-500"></i> تم سحب الأسعار بنجاح`;
+                stepApi.className = "flex items-center gap-1.5 text-slate-500 font-normal";
+
+                stepSort.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin text-amber-500"></i> ترشيح الأفضل لسيارتك`;
+                stepSort.className = "flex items-center gap-1.5 text-amber-600 font-bold";
+            }, 2400);
+
+            // Finish and display (waits for the real backend response before switching tabs)
+            setTimeout(async () => {
+                await evaluateOffersAndBuildUI();
+                switchTab('tab-results');
+            }, 3500);
+        }
+
+        // Real call to the Thiqa backend (Node.js -> Python Agents 1/2/3)
+        async function evaluateOffersAndBuildUI() {
+            const userAge = 2026 - currentFormData.birthYear;
+            const priority = currentFormData.userPriority;
+
+            const requestBody = {
+                driver_age: userAge,
+                // ملاحظة: نموذج الإدخال الحالي لا يحتوي حقل قيمة السيارة صراحة،
+                // نستخدم قيمة تقديرية افتراضية مؤقتاً (يمكن إضافة الحقل لاحقاً في الفورم)
+                vehicle_value: 85000,
+                coverage_type: currentFormData.coverageType,
+                purpose_of_use: currentFormData.vehiclePurpose,
+                priority: priority,
+            };
+
+            let apiResult;
+            try {
+                const res = await fetch('/api/recommend', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody),
+                });
+                apiResult = await res.json();
+                if (!res.ok) throw new Error(apiResult.error || apiResult.detail || 'خطأ من الخادم');
+            } catch (err) {
+                alert('تعذر الاتصال بخادم التوصيات: ' + err.message);
+                return;
+            }
+
+            // نربط نتيجة الوكلاء الحقيقية (Python) بعناصر العرض الثابتة (logo, pros, cons)
+            finalComputedOffers = apiResult.all_offers_ranked.map(offer => {
+                const visualMeta = mockProviders.find(p => p.id === offer.provider_id) || {};
+                return {
+                    ...visualMeta,
+                    name: offer.provider_name,
+                    finalPrice: Math.round(offer.premium),
+                    suitabilityScore: Math.round(offer.suitability_score * 100),
+                    rawOffer: offer,
+                };
+            });
+
+            // نخزن تفسير Agent 3 لاستخدامه في renderResults بدل التوليد المحلي
+            window.__lastExplanation = apiResult.explanation;
+
+            renderResults(priority);
+        }
+
+        // Render evaluated results on UI
+        function renderResults(priority) {
+            // Update metadata labels
+            document.getElementById('res-id').innerHTML = currentFormData.idNumber.substring(0,4) + "****" + currentFormData.idNumber.substring(8);
+            document.getElementById('res-seq').innerHTML = currentFormData.sequenceNumber.substring(0,3) + "***" + currentFormData.sequenceNumber.substring(6);
+            document.getElementById('result-priority-lbl').innerHTML = getPriorityText(priority);
+            
+            // Winning offer is the first index
+            const winner = finalComputedOffers[0];
+            const winnerLogoContainer = document.getElementById('winner-logo-container');
+            winnerLogoContainer.innerHTML = winner.logo;
+
+            document.getElementById('winner-company-name').innerHTML = winner.name;
+            document.getElementById('winner-coverage-type').innerHTML = currentFormData.coverageType === 'Comprehensive' ? 'وثيقة تأمين شامل بلس ديلوكس' : 'تأمين إلزامى ضد الغير للسيارة (TPL)';
+            document.getElementById('winner-price').innerHTML = winner.finalPrice + " ر.س";
+            
+            // Average savings calculation compared to more expensive alternatives
+            const savings = finalComputedOffers[finalComputedOffers.length - 1].finalPrice - winner.finalPrice;
+            document.getElementById('winner-savings').innerHTML = savings > 0 ? `وفرت حوالي ${savings} ر.س عن الخيار الأعلى سعراً` : "عرض متميز ومثالي في القيمة";
+
+            // Explainer output (Agent 3 - real backend explanation, with local fallback)
+            const explanation = window.__lastExplanation;
+            const explanationText = explanation
+                ? `${explanation.main_reasons} ${(explanation.strengths || []).length ? '<br><br><strong>أبرز نقاط القوة:</strong><br>' + explanation.strengths.map(s => '• ' + s).join('<br>') : ''}`
+                : generateXAIExplanation(winner, priority);
+            document.getElementById('winner-advice').innerHTML = explanationText;
+
+            // Render Winner Pros and Cons (static visual copy, kept from provider profile)
+            const prosList = document.getElementById('winner-pros');
+            prosList.innerHTML = (winner.pros || []).map(pro => `<li>${pro}</li>`).join('');
+
+            const consList = document.getElementById('winner-cons');
+            consList.innerHTML = (winner.cons || []).map(con => `<li>${con}</li>`).join('');
+
+            // Render Alternatives list
+            const alternativesContainer = document.getElementById('alternatives-container');
+            alternativesContainer.innerHTML = '';
+
+            for (let i = 1; i < finalComputedOffers.length; i++) {
+                const alt = finalComputedOffers[i];
+                const altCard = document.createElement('div');
+                altCard.className = "flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 rounded-2xl border border-slate-100 bg-slate-50 hover:bg-slate-100 transition gap-4";
+                
+                altCard.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        ${alt.logo}
+                        <div>
+                            <h4 class="font-bold text-navy-800 text-sm">${alt.name}</h4>
+                            <span class="text-xs text-slate-500">نسبة التوافق مع رغبتك: ${alt.suitabilityScore}%</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-6 w-full sm:w-auto justify-between">
+                        <div class="text-right">
+                            <span class="text-[10px] text-slate-400 block font-bold">السعر المقدر للوثيقة</span>
+                            <span class="font-bold text-slate-700 text-md">${alt.finalPrice} ر.س</span>
+                        </div>
+                        <div class="bg-white/80 border border-slate-200 px-3 py-1 rounded-lg text-xs font-bold text-slate-600">
+                            الترتيب الموصى به: #${i + 1}
+                        </div>
+                    </div>
+                `;
+                alternativesContainer.appendChild(altCard);
+            }
+
+            // Update Dynamic Side Controller Styles to highlight current priority active button
+            ['Budget', 'Service', 'Digital', 'Balanced'].forEach(p => {
+                const btn = document.getElementById(`btn-p-${p}`);
+                if (p === priority) {
+                    btn.className = "w-full text-right py-3.5 px-4 rounded-xl text-xs font-bold border-2 border-brand-500 bg-brand-50 text-brand-800 transition flex items-center justify-between shadow-sm";
+                } else {
+                    btn.className = "w-full text-right py-3.5 px-4 rounded-xl text-xs font-medium border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition flex items-center justify-between";
+                }
+            });
+        }
+
+        // Generate Human friendly Explainable AI rules
+        function generateXAIExplanation(winner, priority) {
+            let baseText = `تم ترشيح <strong>"${winner.name}"</strong> كخيارك الأول والأنسب بناءً على بيانات سيارتك عبر نظام ثقة. `;
+            
+            if (priority === 'Budget') {
+                baseText += `حيث أن أولويتك الأساسية هي <strong>توفير الميزانية وأقل سعر</strong>، ولهذا استخلص مستشار ثقة أن هذه الوثيقة تمنحك السعر الأوفر والأنسب حالياً لسيارتك وبأقل تكلفة سنوية ممكنة.`;
+            } else if (priority === 'Service') {
+                baseText += `حيث يمتلك هذا الخيار <strong>أعلى معدل جودة وكفاءة في معالجة المطالبات ورضا العملاء (95/100)</strong> مع شبكة ورش إصلاح واسعة ومضمونة بالكامل، مما يمنحك راحة بال تامة في الحوادث وتجربة سريعة وخالية من المتاعب.`;
+            } else if (priority === 'Digital') {
+                baseText += `نظراً لرغبتك في <strong>تأمين تقني مريح بالكامل</strong>، يمتلك هذا الخيار أفضل وأسرع تطبيق للجوال مع واجهة تتيح رفع ومتابعة كافة شؤون وتحديثات وثيقتك إلكترونياً دون الحاجة لزيارة أي فرع للشركة مطلقاً.`;
+            } else {
+                baseText += `لأنك تبحث عن <strong>القيمة العادلة المتوازنة</strong>، تم اختيار هذا العرض كونه يحقق التوليفة الفضلى؛ فهو يمنحك سعراً منافساً وفي الوقت ذاته ورش صيانة متميزة ومطالبات سهلة وتجربة رقمية موثوقة ومثبتة.`;
+            }
+
+            // Age note
+            const userAge = 2026 - currentFormData.birthYear;
+            if (userAge < 25) {
+                baseText += ` <br><span class="text-xs text-brand-300 font-normal">⚠️ تم الأخذ بالاعتبار في الحسبة تلقائياً معامل تسعير الفئات العمرية دون 25 عاماً لضمان دقة العرض التقديري المقترح من منصة ثقة.</span>`;
+            }
+
+            return baseText;
+        }
+
+        // On the fly changes (re-calls the real Agent 2 with new weighting)
+        async function changePriorityOnTheFly(newPriority) {
+            currentFormData.userPriority = newPriority;
+            await evaluateOffersAndBuildUI();
+        }
+
+        // Helper Text Translation function
+        function getPriorityText(priority) {
+            switch(priority) {
+                case 'Budget': return 'أقل سعر وميزانية اقتصادية';
+                case 'Service': return 'سرعة تسوية المطالبات وجودة الخدمة';
+                case 'Digital': return 'ميزات وتطبيق ذكي بالكامل';
+                default: return 'القيمة المتوازنة مقابل السعر';
+            }
+        }
+    </script>
+</body>
+</html>

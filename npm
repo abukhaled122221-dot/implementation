@@ -1,0 +1,6 @@
+      PID    PPID    PGID     WINPID   TTY         UID    STIME COMMAND
+      810     745     810      16628  pty0      197609 20:19:32 /usr/bin/PS
+      744       1     744      22812  ?         197609 20:19:02 /usr/bin/mintty
+      742     741     741      19472  ?         197609 20:08:08 /c/Program Files/Microsoft VS Code/Code
+      745     744     745      11296  pty0      197609 20:19:02 /usr/bin/bash
+      741       1     741      20004  ?         197609 20:08:07 /usr/bin/sh
