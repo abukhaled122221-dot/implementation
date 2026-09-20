@@ -18,9 +18,11 @@ thiqa_implementation/implementation/
 ├── .gitignore                  # ملفات ومجلدات مستبعدة من git
 └── README.md                   # هذا الملف
 ```
-
+### Tables
 ![Tables](database/show-tables&columns.png)
 
+### Primary Keys
 ![Primary Keys](database/show-PK.png)
 
+### Foreign Keys
 ![Foreign Keys](database/relations&FK.png)
