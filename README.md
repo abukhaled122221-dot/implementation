@@ -17,7 +17,7 @@ thiqa_implementation/implementation/
 │       └── index.html          # الواجهة الأمامية (متصلة بالخلادم عبر /api/recommend)
 ├── .gitignore                  # ملفات ومجلدات مستبعدة من git
 └── README.md                   # هذا الملف
-
+```
 
 ![Tables](database/show-tables&columns.png)
 
