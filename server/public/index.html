@@ -69,42 +69,12 @@
                     قارن عروض التأمين الفورية واحصل على <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-emerald-500">التوصية الأنسب</span> لسيارتك بلمحة واحدة
                 </h2>
                 <p class="text-lg text-slate-600 mb-10 leading-relaxed">
-                    نحن في منصة ثقة لا نكتفي بعرض أسعار شركات التأمين فحسب؛ بل نقوم بتحليل تفاصيل العروض الذكية لنمنحك أفضل خيار يطابق رغبتك وميزانيتك مع تبرير واضح ومبسط ومباشر.
+                    نحن في منصة ثقة نقوم بتحليل تفاصيل العروض الذكية لنمنحك أفضل خيار يطابق رغبتك وميزانيتك مع تبرير واضح ومبسط وانتقال مباشر لإتمام الشراء.
                 </p>
                 <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
                     <button onclick="switchTab('tab-form')" class="w-full sm:w-auto bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-700 hover:to-brand-600 text-white font-bold px-10 py-5 rounded-2xl shadow-lg shadow-brand-500/20 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2 text-md">
                         ابدأ المقارنة الذكية الآن <i class="fa-solid fa-arrow-left"></i>
                     </button>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 my-16">
-                <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition">
-                    <div class="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center text-xl mb-6">
-                        <i class="fa-solid fa-car-side"></i>
-                    </div>
-                    <h3 class="text-xl font-bold text-navy-800 mb-3">تحليل دقيق لبيانات مركبتك</h3>
-                    <p class="text-slate-600 leading-relaxed text-sm">
-                        نأخذ بعين الاعتبار كافة تفاصيل مركبتك وبيانات السائق للوصول إلى أدق تسعيرة تأمينية تناسب وضعك الفعلي.
-                    </p>
-                </div>
-                <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition">
-                    <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl mb-6">
-                        <i class="fa-solid fa-brain"></i>
-                    </div>
-                    <h3 class="text-xl font-bold text-navy-800 mb-3">مفاضلة ذكية وبدون تحيز</h3>
-                    <p class="text-slate-600 leading-relaxed text-sm">
-                        يقوم نظام ثقة بمقارنة العروض بناءً على أولويتك ومصلحتك؛ هل تبحث عن السعر الأوفر، أم سرعة تسوية المطالبات، أم المزايا الأوسع؟
-                    </p>
-                </div>
-                <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition">
-                    <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl mb-6">
-                        <i class="fa-solid fa-heart-pulse"></i>
-                    </div>
-                    <h3 class="text-xl font-bold text-navy-800 mb-3">توصية واضحة وانتقال مباشر</h3>
-                    <p class="text-slate-600 leading-relaxed text-sm">
-                        لا داعي لقراءة الشروط الطويلة؛ نمنحك التوصية الأنسب مع زر انتقال فوري إلى العرض داخل موقع شركة التأمين لإتمام الشراء.
-                    </p>
                 </div>
             </div>
         </div>
@@ -122,7 +92,7 @@
                         </div>
                         <div>
                             <h2 class="text-2xl font-black">قارن عروض سيارتك واحصل على توصيتك فوراً</h2>
-                            <p class="text-slate-300 text-sm mt-1.5">أدخل البيانات الأساسية بالأسفل لنساعدك في اختيار التغطية التأمينية الأنسب والأوفر</p>
+                            <p class="text-slate-300 text-sm mt-1.5">أدخل بياناتك بالأسفل ليتم احتساب السعر ومطابقة أفضل عرض وربط بياناتك تلقائياً عند الشراء</p>
                         </div>
                     </div>
                 </div>
@@ -160,11 +130,8 @@
                         </div>
 
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-2">سنة الصنع وقيمة المركبة (ر.س) <span class="text-red-500">*</span></label>
-                            <div class="grid grid-cols-2 gap-2">
-                                <input type="number" id="manufactureYear" min="1990" max="2027" value="2022" required class="py-3.5 px-3 rounded-2xl border border-slate-200 font-mono">
-                                <input type="number" id="vehicleValue" min="5000" max="2000000" value="85000" required class="py-3.5 px-3 rounded-2xl border border-slate-200 font-mono">
-                            </div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">سنة صنع المركبة <span class="text-red-500">*</span></label>
+                            <input type="number" id="manufactureYear" min="1990" max="2027" value="2022" required class="w-full py-3.5 px-4 rounded-2xl border border-slate-200 font-mono">
                         </div>
 
                         <div>
@@ -275,7 +242,6 @@
                             <span class="bg-brand-500 text-white text-xs font-black px-3.5 py-1.5 rounded-full uppercase inline-block">
                                 <i class="fa-solid fa-crown ml-1"></i> العرض الفائز بالتوصية الأولى من ثقة
                             </span>
-                            <!-- زر بجانب التوصية ينقل إلى العرض مباشرة -->
                             <a id="winner-top-btn" href="#" target="_blank" class="bg-white text-navy-900 hover:bg-brand-50 font-black px-5 py-2.5 rounded-xl text-xs transition flex items-center gap-2 shadow-lg">
                                 الانتقال إلى العرض مباشرة <i class="fa-solid fa-arrow-up-right-from-square text-brand-600"></i>
                             </a>
@@ -290,7 +256,7 @@
                                 </div>
                             </div>
                             <div class="text-right sm:text-left">
-                                <span class="text-xs text-slate-300 block">السعر الإجمالي المقدر للوثيقة</span>
+                                <span class="text-xs text-slate-300 block">السعر الإجمالي للوثيقة</span>
                                 <div class="text-3xl font-black text-brand-400" id="winner-price"></div>
                                 <span class="text-xs text-brand-300 font-medium" id="winner-savings"></span>
                             </div>
@@ -342,15 +308,16 @@
     </footer>
 
     <script>
-	let INSURER_BASE_URL = 'http://127.0.0.1:8001';
-fetch('/api/config').then(r => r.json()).then(cfg => {
-    if (cfg.insurerPlatformUrl) {
-        INSURER_BASE_URL = cfg.insurerPlatformUrl.replace(/\/$/, '');
-        document.querySelectorAll('a[href^="http://127.0.0.1:8001"]').forEach(a => {
-            a.href = a.href.replace('http://127.0.0.1:8001', INSURER_BASE_URL);
-        });
-    }
-}).catch(() => {});
+        let INSURER_BASE_URL = 'http://127.0.0.1:8001';
+        fetch('/api/config').then(r => r.json()).then(cfg => {
+            if (cfg.insurerPlatformUrl) {
+                INSURER_BASE_URL = cfg.insurerPlatformUrl.replace(/\/$/, '');
+                document.querySelectorAll('a[href^="http://127.0.0.1:8001"]').forEach(a => {
+                    a.href = a.href.replace('http://127.0.0.1:8001', INSURER_BASE_URL);
+                });
+            }
+        }).catch(() => {});
+
         const mockProviders = [
             { id: 'tawuniya', name: 'التعاونية للتأمين', logo: `<div class="w-12 h-12 bg-emerald-600 text-white font-black rounded-xl flex items-center justify-center text-sm">T</div>` },
             { id: 'rajhi', name: 'الراجحي تكافل', logo: `<div class="w-12 h-12 bg-blue-600 text-white font-black rounded-xl flex items-center justify-center text-sm">R</div>` },
@@ -369,14 +336,15 @@ fetch('/api/config').then(r => r.json()).then(cfg => {
 
         function handleFormSubmit(event) {
             event.preventDefault();
+            const bYear = parseInt(document.getElementById('birthYear').value, 10);
             currentFormData = {
                 idNumber: document.getElementById('idNumber').value.trim(),
                 sequenceNumber: document.getElementById('sequenceNumber').value.trim(),
                 birthDay: document.getElementById('birthDay').value,
                 birthMonth: document.getElementById('birthMonth').value,
-                birthYear: parseInt(document.getElementById('birthYear').value, 10),
+                birthYear: bYear,
+                driverAge: new Date().getFullYear() - bYear,
                 manufactureYear: parseInt(document.getElementById('manufactureYear').value, 10),
-                vehicleValue: parseFloat(document.getElementById('vehicleValue').value),
                 city: document.getElementById('customerCity').value,
                 gender: document.getElementById('customerGender').value,
                 has_accidents: document.getElementById('hasAccidents').value,
@@ -392,7 +360,7 @@ fetch('/api/config').then(r => r.json()).then(cfg => {
                 const ok = await evaluateOffersAndBuildUI();
                 if (ok) switchTab('tab-results');
                 else switchTab('tab-form');
-            }, 1400);
+            }, 1200);
         }
 
         async function evaluateOffersAndBuildUI() {
@@ -402,7 +370,7 @@ fetch('/api/config').then(r => r.json()).then(cfg => {
                 birth_date: `${f.birthYear}-${String(f.birthMonth).padStart(2, '0')}-${String(f.birthDay).padStart(2, '0')}`,
                 vehicle_serial: f.sequenceNumber,
                 manufacture_year: f.manufactureYear,
-                vehicle_value: f.vehicleValue,
+                vehicle_value: 50000, // قيمة رمزية لتوافق الـ Schema فقط ولا تؤثر على السعر إطلاقاً
                 purpose_of_use: f.vehiclePurpose,
                 annual_mileage: f.mileage,
                 coverage_type: f.coverageType,
@@ -444,7 +412,7 @@ fetch('/api/config').then(r => r.json()).then(cfg => {
             }
         }
 
-        // بناء رابط ينقل العميل مباشرة إلى العرض داخل الموقع المستقل الخاص بالشركة المختارة
+        // ربط كامل بيانات المستخدم وتمريرها تلقائياً إلى صفحة العرض والشراء في موقع الشركة
         function buildCompanyDirectOfferUrl(offer) {
             const params = new URLSearchParams({
                 selected_offer: '1',
@@ -453,7 +421,7 @@ fetch('/api/config').then(r => r.json()).then(cfg => {
                 deductible: offer.deductible || 500,
                 national_id: currentFormData.idNumber,
                 serial: currentFormData.sequenceNumber,
-                val: currentFormData.vehicleValue,
+                age: currentFormData.driverAge || 30,
                 city: currentFormData.city,
                 gender: currentFormData.gender,
                 accidents: currentFormData.has_accidents,
@@ -472,7 +440,7 @@ fetch('/api/config').then(r => r.json()).then(cfg => {
         }
 
         function renderResults(priority) {
-            document.getElementById('res-id').textContent = currentFormData.idNumber.substring(0,4) + "****" + currentFormData.idNumber.substring(8);
+            document.getElementById('res-id').textContent = currentFormData.idNumber;
             document.getElementById('res-seq').textContent = currentFormData.sequenceNumber;
             document.getElementById('result-priority-lbl').textContent = getPriorityArabic(priority);
 
