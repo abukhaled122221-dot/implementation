@@ -1,11 +1,9 @@
 """
 منظومة المواقع المستقلة لشركات التأمين (منفذ 8001):
-
+- بدون أي بيانات عميل مسجلة مسبقاً (حقول فارغة يدخلها العميل بنفسه)
+- إزالة قسم الوثائق المصدرة من واجهة الأفراد نهائياً
+- 28 عرضاً تأمينياً جاهزاً في قاعدة البيانات
 - تسجيل دخول مستقل لموظفي كل شركة (الأدمن)
-- تسعير ثابت لا يتأثر بقيمة السيارة
-- ربط تلقائي لبيانات العميل مع صفحة الشراء
-- نموذج بيانات البطاقة البنكية أثناء الدفع
-- تحديث فوري للبيانات والوثائق بعد الإصدار
 """
 
 import asyncio
@@ -56,7 +54,6 @@ ACTIVE_CUSTOMER_RISK = {
     "cars_count": "single",
 }
 
-# بيانات دخول الأدمن لكل شركة تأمين
 ADMIN_CREDENTIALS = {
     "tawuniya": {"username": "admin", "password": "123"},
     "rajhi": {"username": "admin", "password": "123"},
@@ -67,7 +64,7 @@ ADMIN_CREDENTIALS = {
 DEFAULT_PRICING_RULES = {
     "tawuniya": {
         "id": "tawuniya",
-        "name": "التعاونية للتأمين",
+        "name": "التعاونية",
         "slogan": "الخيار الأول لتأمين المركبات في المملكة العربية السعودية",
         "badge": "T",
         "color": "#059669",
@@ -109,7 +106,7 @@ DEFAULT_PRICING_RULES = {
     },
     "medgulf": {
         "id": "medgulf",
-        "name": "ميدغلف للتأمين",
+        "name": "ميدغلف",
         "slogan": "حماية متكاملة وباقات مرنة تناسب تطلعاتك وميزانيتك",
         "badge": "M",
         "color": "#d97706",
@@ -130,7 +127,7 @@ DEFAULT_PRICING_RULES = {
     },
     "acig": {
         "id": "acig",
-        "name": "المجموعة المتحدة للتأمين (أسيج)",
+        "name": "أسيج",
         "slogan": "أفضل العروض الاقتصادية لتأمين المركبات الشامل وضد الغير",
         "badge": "ACIG",
         "color": "#dc2626",
@@ -153,13 +150,11 @@ DEFAULT_PRICING_RULES = {
 
 PRICING_RULES = json.loads(json.dumps(DEFAULT_PRICING_RULES))
 
-# 28 عرضاً تأمينياً جاهزاً (7 عروض لكل شركة تتدرج بين الرخيص والمتوسط والغالي)
 DEFAULT_28_OFFERS = [
-    # ==================== 1. التعاونية للتأمين  ====================
     ("tawuniya", "التعاونية ضد الغير الأساسي (اقتصادي)", "TPL", 420, 420,
      "[فئة اقتصادية] تأمين إلزامي ضد الغير بأقل تكلفة يغطي المسؤولية المدنية للطرف الثالث حتى 10 مليون ريال."),
     ("tawuniya", "التعاونية ضد الغير بلس (متوسط)", "TPL", 540, 540,
-     "[فئة متوسطة] تأمين ضد الغير مع خدمة المساعدة على الطريق على مدار الساعة وسرعة إنهاء إجراءات نجم."),
+     "[فئة متوسطة] تأمين ضد الغير مع خدمة المساعدة على الطريق على مدار الساعة وسرعة إنهاء الإجراءات."),
     ("tawuniya", "التعاونية ضد الغير بريميوم (مميز)", "TPL", 690, 690,
      "[فئة مميزة] تأمين ضد الغير يشمل الحوادث الشخصية للسائق والركاب مع تغطية القطر والسحب المجاني."),
     ("tawuniya", "التعاونية الشامل الاقتصادي (رخيص)", "Comprehensive", 1250, 1250,
@@ -169,9 +164,8 @@ DEFAULT_28_OFFERS = [
     ("tawuniya", "التعاونية الشامل الذهبي (فوق المتوسط)", "Comprehensive", 2200, 2200,
      "[فئة متقدمة] تأمين شامل يضم سيارة بديلة مجانية وتغطية الزجاج والكوارث الطبيعية."),
     ("tawuniya", "باقة التعاونية الماسية الشاملة VIP (غالي)", "Comprehensive", 2950, 2950,
-     "[فئة كبار الشخصيات VIP] أعلى تغطية شاملة مع إصلاح وكالة وتغطية دول الخليج وسيارة بديلة فورية بدون تحمل."),
+     "[فئة كبار الشخصيات VIP] أعلى تغطية شاملة مع إصلاح وكالة وتغطية دول الخليج وسيارة بديلة فورية."),
 
-    # ==================== 2. الراجحي تكافل  ====================
     ("rajhi", "الراجحي ضد الغير الاقتصادي (رخيص)", "TPL", 440, 440,
      "[فئة اقتصادية] وثيقة تكافلية ضد الغير متوافقة مع الشريعة الإسلامية بسعر اقتصادي وإصدار رقمي فوري."),
     ("rajhi", "الراجحي ضد الغير الرقمي (متوسط)", "TPL", 560, 560,
@@ -187,7 +181,6 @@ DEFAULT_28_OFFERS = [
     ("rajhi", "باقة الراجحي التكافلية النخبة وكالة (غالي)", "Comprehensive", 2850, 2850,
      "[فئة النخبة VIP] تأمين شامل فاخر مع إصلاح وكالة المعتمد وتغطية دول مجلس التعاون الخليجي بالكامل."),
 
-    # ==================== 3. ميدغلف للتأمين  ====================
     ("medgulf", "ميدغلف ضد الغير التوفير (رخيص)", "TPL", 410, 410,
      "[فئة اقتصادية] تأمين ضد الغير بسعر منافس جداً يفي بكافة متطلبات المرور والربط الإلكتروني الفوري."),
     ("medgulf", "ميدغلف ضد الغير المتوازن (متوسط)", "TPL", 520, 520,
@@ -203,7 +196,6 @@ DEFAULT_28_OFFERS = [
     ("medgulf", "باقة ميدغلف رويال الشاملة VIP (غالي)", "Comprehensive", 2690, 2690,
      "[فئة رويال VIP] أقصى درجات الحماية الشاملة مع إصلاح في الوكالة وخدمة استلام وتسليم المركبة."),
 
-    # ==================== 4. أسيج للتأمين ACIG  ====================
     ("acig", "أسيج التوفير ضد الغير (الأرخص)", "TPL", 380, 380,
      "[فئة اقتصادية] أرخص وثيقة تأمين ضد الغير في المنصة لأصحاب الميزانية الاقتصادية المحدودة."),
     ("acig", "أسيج ضد الغير المطور (متوسط)", "TPL", 490, 490,
@@ -336,7 +328,6 @@ def _init_db():
             )
         )
 
-    # ضمان وجود 7 عروض متنوعة لكل شركة (إجمالي 28 عرضاً)
     offers_count = cur.execute("SELECT COUNT(*) FROM Company_Offers").fetchone()[0]
     if offers_count < 28:
         cur.execute("DELETE FROM Company_Offers")
@@ -817,7 +808,7 @@ def _render_independent_company_site(provider_id: str) -> str:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> {c['name']}</title>
+    <title>{c['name']}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -840,7 +831,7 @@ def _render_independent_company_site(provider_id: str) -> str:
 
             <div class="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
                 <button onclick="switchView('customer')" id="btn-view-customer" class="px-5 py-2 rounded-xl text-xs font-black transition text-white shadow" style="background:{c['color']}">
-                    <i class="fa-solid fa-car ml-1"></i> الأفراد وعروض التأمين 
+                    <i class="fa-solid fa-car ml-1"></i> الأفراد وعروض التأمين
                 </button>
                 <button onclick="switchView('admin')" id="btn-view-admin" class="px-5 py-2 rounded-xl text-xs font-black transition text-slate-600 hover:text-slate-900">
                     <i class="fa-solid fa-user-shield ml-1"></i> بوابة موظفي {c['name']} (الأدمن)
@@ -878,25 +869,25 @@ def _render_independent_company_site(provider_id: str) -> str:
                 </div>
             </div>
 
-            <!-- بيانات العميل والمركبة لحساب القسط وربطها مباشرة بصفحة الشراء -->
+            <!-- بيانات العميل والمركبة (فارغة بدون بيانات مسبقة) -->
             <div class="bg-gradient-to-r {c['bg_hero']} text-white rounded-3xl p-8 shadow-lg">
                 <div class="max-w-2xl">
                     <h2 class="text-3xl font-black mb-2">أهلاً بك في البوابة الإلكترونية لشركة {c['name']}</h2>
-                    <p class="text-slate-200 text-sm">أدخل بياناتك بالأسفل ليتم احتساب السعر الفوري لجميع الباقات الـ 7 (الاقتصادية، المتوسطة، والفاخرة) وربط بياناتك تلقائياً بصفحة الشراء.</p>
+                    <p class="text-slate-200 text-sm">أدخل بياناتك بالأسفل ليتم احتساب السعر الفوري لجميع الباقات وربط بياناتك تلقائياً بصفحة الشراء.</p>
                 </div>
 
                 <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mt-6 bg-white/10 p-4 rounded-2xl border border-white/15 text-xs">
                     <div>
                         <label class="block text-white/80 font-bold mb-1">رقم الهوية / الإقامة</label>
-                        <input type="text" id="c-id" value="1098765432" maxlength="10" oninput="renderCompanyOffers()" class="w-full px-3 py-2 rounded-xl bg-slate-900/90 text-white border border-white/20 font-mono font-bold">
+                        <input type="text" id="c-id" placeholder="أدخل رقم الهوية" maxlength="10" oninput="renderCompanyOffers()" class="w-full px-3 py-2 rounded-xl bg-slate-900/90 text-white placeholder-slate-400 border border-white/20 font-mono font-bold">
                     </div>
                     <div>
                         <label class="block text-white/80 font-bold mb-1">الرقم التسلسلي للمركبة</label>
-                        <input type="text" id="c-serial" value="123456789" maxlength="17" oninput="renderCompanyOffers()" class="w-full px-3 py-2 rounded-xl bg-slate-900/90 text-white border border-white/20 font-mono font-bold">
+                        <input type="text" id="c-serial" placeholder="أدخل الرقم التسلسلي" maxlength="17" oninput="renderCompanyOffers()" class="w-full px-3 py-2 rounded-xl bg-slate-900/90 text-white placeholder-slate-400 border border-white/20 font-mono font-bold">
                     </div>
                     <div>
                         <label class="block text-white/80 font-bold mb-1">عمر السائق</label>
-                        <input type="number" id="c-age" value="30" min="18" max="85" oninput="renderCompanyOffers()" class="w-full px-3 py-2 rounded-xl bg-slate-900/90 text-white border border-white/20 font-mono font-bold">
+                        <input type="number" id="c-age" placeholder="مثال: 30" min="18" max="85" oninput="renderCompanyOffers()" class="w-full px-3 py-2 rounded-xl bg-slate-900/90 text-white placeholder-slate-400 border border-white/20 font-mono font-bold">
                     </div>
                     <div>
                         <label class="block text-white/80 font-bold mb-1">موقع العميل</label>
@@ -943,17 +934,6 @@ def _render_independent_company_site(provider_id: str) -> str:
 
             <!-- قائمة عروض الشركة -->
             <div id="company-offers-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-
-            <!-- قسم الوثائق المصدرة حديثاً (يتحدث تلقائياً بعد كل عملية شراء) -->
-            <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-black text-slate-900 flex items-center gap-2">
-                        <i class="fa-solid fa-file-shield" style="color:{c['color']}"></i> أحدث وثائق التأمين المصدرة في {c['name']}
-                    </h3>
-                    <span class="text-xs text-emerald-600 font-bold bg-emerald-50 px-3 py-1 rounded-full">تحديث فوري مباشر</span>
-                </div>
-                <div id="customer-issued-policies" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs"></div>
-            </div>
         </div>
 
         <!-- ======================================================= -->
@@ -974,13 +954,12 @@ def _render_independent_company_site(provider_id: str) -> str:
                 <form onsubmit="handleAdminLogin(event)" class="space-y-4 text-xs">
                     <div>
                         <label class="font-bold block mb-1.5 text-slate-700">اسم المستخدم</label>
-                        <input type="text" id="adm-user" required placeholder="admin" value="admin" class="w-full px-4 py-3 rounded-xl border border-slate-200 font-mono text-sm focus:outline-none focus:ring-2">
+                        <input type="text" id="adm-user" required placeholder="أدخل اسم المستخدم" class="w-full px-4 py-3 rounded-xl border border-slate-200 font-mono text-sm focus:outline-none focus:ring-2">
                     </div>
                     <div>
                         <label class="font-bold block mb-1.5 text-slate-700">كلمة المرور</label>
-                        <input type="password" id="adm-pass" required placeholder="•••" value="123" class="w-full px-4 py-3 rounded-xl border border-slate-200 font-mono text-sm focus:outline-none focus:ring-2">
+                        <input type="password" id="adm-pass" required placeholder="أدخل كلمة المرور" class="w-full px-4 py-3 rounded-xl border border-slate-200 font-mono text-sm focus:outline-none focus:ring-2">
                     </div>
-                   
                     <button type="submit" class="w-full text-white font-black py-3.5 rounded-xl shadow-lg text-sm transition hover:opacity-95" style="background:{c['color']}">
                         تسجيل الدخول إلى لوحة التحكم <i class="fa-solid fa-arrow-left mr-1"></i>
                     </button>
@@ -1007,7 +986,7 @@ def _render_independent_company_site(provider_id: str) -> str:
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div class="lg:col-span-2 bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
-                    <h3 class="text-lg font-black text-slate-900 mb-1">1. نظام التسعيرة الثابت لشركة {c['name']} (لا يتأثر بسعر السيارة)</h3>
+                    <h3 class="text-lg font-black text-slate-900 mb-1">1. نظام التسعيرة الثابت لشركة {c['name']}</h3>
                     <p class="text-xs text-slate-500 mb-5">تحكم في الأسعار الأساسية الثابتة ومعاملات تسعير الشركة (موقع العميل، الجنس، سجل الحوادث، وعدد السيارات):</p>
 
                     <div id="adm-msg" class="hidden mb-4 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-bold"></div>
@@ -1015,11 +994,11 @@ def _render_independent_company_site(provider_id: str) -> str:
                     <form onsubmit="savePricing(event)" class="space-y-5 text-xs">
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
                             <div>
-                                <label class="font-bold block mb-1">سعر ضد الغير المرجعي للـ API (ر.س)</label>
+                                <label class="font-bold block mb-1">سعر ضد الغير الأساسي (ر.س)</label>
                                 <input type="number" id="pr-tpl" step="any" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono font-bold">
                             </div>
                             <div>
-                                <label class="font-bold block mb-1">سعر الشامل المرجعي للـ API (ر.س)</label>
+                                <label class="font-bold block mb-1">سعر الشامل الأساسي (ر.س)</label>
                                 <input type="number" id="pr-comp" step="any" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono font-bold">
                             </div>
                             <div>
@@ -1099,7 +1078,7 @@ def _render_independent_company_site(provider_id: str) -> str:
                     </div>
 
                     <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
-                        <h3 class="text-md font-black text-slate-900 mb-2">الوثائق المباعة في {c['name']}</h3>
+                        <h3 class="text-md font-black text-slate-900 mb-2">سجل الوثائق المباعة (خاص بالأدمن)</h3>
                         <div id="adm-policies-list" class="space-y-2 max-h-60 overflow-y-auto text-xs"></div>
                     </div>
                 </div>
@@ -1107,7 +1086,7 @@ def _render_independent_company_site(provider_id: str) -> str:
         </div>
     </main>
 
-    <!-- نافذة إتمام الطلب وبيانات البطاقة البنكية والشراء -->
+    <!-- نافذة إتمام الطلب وبيانات البطاقة البنكية والشراء (حقول فارغة بدون بيانات شخص آخر) -->
     <div id="checkout-modal" class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
         <div class="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 my-8 max-h-[92vh] overflow-y-auto">
             <div id="chk-form-box">
@@ -1119,7 +1098,7 @@ def _render_independent_company_site(provider_id: str) -> str:
                     <button onclick="closeCheckout()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-600"><i class="fa-solid fa-xmark"></i></button>
                 </div>
 
-                <!-- ملخص العرض وبيانات العميل المربوطة تلقائياً -->
+                <!-- ملخص العرض وبيانات العميل المربوطة -->
                 <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 mb-4 text-xs space-y-1.5">
                     <div class="flex justify-between"><span>العرض المختار:</span><strong id="chk-offer-name" class="text-slate-900"></strong></div>
                     <div class="flex justify-between"><span>نوع التغطية:</span><strong id="chk-cov-name"></strong></div>
@@ -1131,29 +1110,29 @@ def _render_independent_company_site(provider_id: str) -> str:
                 </div>
 
                 <form onsubmit="submitPurchase(event)" class="space-y-4 text-xs">
-                    <!-- 1. بيانات المؤمن له والمركبة (مربوطة تلقائياً) -->
+                    <!-- 1. بيانات المؤمن له والمركبة -->
                     <div class="p-3.5 rounded-2xl border border-slate-200 space-y-3">
                         <h4 class="font-black text-slate-800 flex items-center gap-1.5">
-                            <i class="fa-solid fa-user-check text-emerald-600"></i> 1. بيانات العميل والمركبة (مربوطة تلقائياً)
+                            <i class="fa-solid fa-user-check text-emerald-600"></i> 1. بيانات العميل والمركبة
                         </h4>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
                                 <label class="font-bold block mb-1">اسم مالك الوثيقة <span class="text-red-500">*</span></label>
-                                <input type="text" id="chk-cust-name" required placeholder="الاسم الثلاثي" value="إلياس خالد النجيدان" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold">
+                                <input type="text" id="chk-cust-name" required placeholder="أدخل الاسم الثلاثي" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold">
                             </div>
                             <div>
                                 <label class="font-bold block mb-1">رقم الجوال <span class="text-red-500">*</span></label>
-                                <input type="tel" id="chk-cust-phone" required maxlength="10" value="0551234567" class="w-full px-3 py-2 rounded-xl border border-slate-200 font-mono text-xs font-bold">
+                                <input type="tel" id="chk-cust-phone" required maxlength="10" placeholder="05XXXXXXXX" class="w-full px-3 py-2 rounded-xl border border-slate-200 font-mono text-xs font-bold">
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label class="font-bold block mb-1">رقم الهوية / الإقامة</label>
-                                <input type="text" id="chk-cust-id" required maxlength="10" class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 font-mono text-xs font-bold">
+                                <label class="font-bold block mb-1">رقم الهوية / الإقامة <span class="text-red-500">*</span></label>
+                                <input type="text" id="chk-cust-id" required maxlength="10" placeholder="أدخل رقم الهوية" class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 font-mono text-xs font-bold">
                             </div>
                             <div>
-                                <label class="font-bold block mb-1">الرقم التسلسلي / VIN</label>
-                                <input type="text" id="chk-cust-serial" required class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 font-mono text-xs font-bold">
+                                <label class="font-bold block mb-1">الرقم التسلسلي / VIN <span class="text-red-500">*</span></label>
+                                <input type="text" id="chk-cust-serial" required placeholder="أدخل الرقم التسلسلي" class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 font-mono text-xs font-bold">
                             </div>
                         </div>
                     </div>
@@ -1182,25 +1161,25 @@ def _render_independent_company_site(provider_id: str) -> str:
                             </div>
                             <div>
                                 <label class="font-bold block mb-1">الاسم المطبوع على البطاقة <span class="text-red-500">*</span></label>
-                                <input type="text" id="chk-card-holder" required placeholder="ELYAS KHALED" value="ELYAS KHALED" class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono text-xs uppercase">
+                                <input type="text" id="chk-card-holder" required placeholder="الاسم كما يظهر على البطاقة" class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono text-xs uppercase">
                             </div>
                         </div>
 
                         <div>
                             <label class="font-bold block mb-1">رقم البطاقة البنكية (16 رقماً) <span class="text-red-500">*</span></label>
-                            <input type="text" id="chk-card-number" required maxlength="19" placeholder="4455 8899 1122 3344" value="4455 8899 1122 3344" oninput="formatCardNumber(this)"
+                            <input type="text" id="chk-card-number" required maxlength="19" placeholder="XXXX XXXX XXXX XXXX" oninput="formatCardNumber(this)"
                                 class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white font-mono text-sm tracking-widest font-bold">
                         </div>
 
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="font-bold block mb-1">تاريخ الانتهاء (MM/YY) <span class="text-red-500">*</span></label>
-                                <input type="text" id="chk-card-exp" required maxlength="5" placeholder="08/28" value="08/28" oninput="formatExpiry(this)"
+                                <input type="text" id="chk-card-exp" required maxlength="5" placeholder="MM/YY" oninput="formatExpiry(this)"
                                     class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono text-xs text-center font-bold">
                             </div>
                             <div>
                                 <label class="font-bold block mb-1">رمز الأمان (CVV) <span class="text-red-500">*</span></label>
-                                <input type="password" id="chk-card-cvv" required maxlength="3" minlength="3" placeholder="123" value="123"
+                                <input type="password" id="chk-card-cvv" required maxlength="3" minlength="3" placeholder="CVV"
                                     class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono text-xs text-center font-bold">
                             </div>
                         </div>
@@ -1212,13 +1191,13 @@ def _render_independent_company_site(provider_id: str) -> str:
                 </form>
             </div>
 
-            <!-- شاشة الوثيقة المصدرة وتحديث البيانات بعد الإصدار -->
+            <!-- شاشة الوثيقة المصدرة بعد الإصدار -->
             <div id="chk-success-box" class="hidden text-center space-y-4">
                 <div class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-3xl mx-auto">
                     <i class="fa-solid fa-circle-check"></i>
                 </div>
                 <div>
-                    <span class="bg-emerald-50 text-emerald-700 text-[11px] font-black px-3 py-1 rounded-full">تم الدفع وتحديث السجلات بنجاح</span>
+                    <span class="bg-emerald-50 text-emerald-700 text-[11px] font-black px-3 py-1 rounded-full">تم الدفع وإصدار الوثيقة بنجاح</span>
                     <h3 class="text-2xl font-black text-slate-900 mt-2">وثيقة تأمين رسمية - {c['name']}</h3>
                 </div>
                 <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-right text-xs space-y-2">
@@ -1233,7 +1212,7 @@ def _render_independent_company_site(provider_id: str) -> str:
                 </div>
                 <div class="flex gap-3">
                     <button onclick="window.print()" class="flex-1 bg-slate-900 text-white font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-print ml-1"></i> طباعة الوثيقة</button>
-                    <button onclick="closeCheckout()" class="flex-1 text-white font-bold py-3 rounded-xl text-xs" style="background:{c['color']}">إغلاق وعرض الوثائق المحدثة</button>
+                    <button onclick="closeCheckout()" class="flex-1 text-white font-bold py-3 rounded-xl text-xs" style="background:{c['color']}">إغلاق</button>
                 </div>
             </div>
         </div>
@@ -1268,7 +1247,6 @@ def _render_independent_company_site(provider_id: str) -> str:
             companyData = await res.json();
             applyUrlCustomerParams();
             renderCompanyOffers();
-            renderCustomerIssuedPolicies();
             populateAdmin();
         }}
 
@@ -1371,7 +1349,6 @@ def _render_independent_company_site(provider_id: str) -> str:
             }}
         }}
 
-        // حساب السعر الثابت للعرض بدون أي تأثير لسعر السيارة
         function calcOfferPrice(offer) {{
             const r = companyData.company;
             const age = parseInt(document.getElementById('c-age').value) || 30;
@@ -1400,7 +1377,6 @@ def _render_independent_company_site(provider_id: str) -> str:
             const addonsBadges = (r.addons || []).map(a => `<span class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded-lg text-[10px] font-bold">✓ ${{ADDON_AR[a] || a}}</span>`).join('');
 
             const filteredOffers = (companyData.offers || []).filter(o => currentCovFilter === 'ALL' || o.CoverageType === currentCovFilter);
-            
 
             filteredOffers.forEach(o => {{
                 const price = calcOfferPrice(o);
@@ -1433,29 +1409,6 @@ def _render_independent_company_site(provider_id: str) -> str:
                     </div>
                 `;
             }});
-        }}
-
-        function renderCustomerIssuedPolicies() {{
-            const container = document.getElementById('customer-issued-policies');
-            const policies = companyData.policies || [];
-            if (policies.length === 0) {{
-                container.innerHTML = '<p class="text-slate-400 col-span-2">لا توجد وثائق مصدرة حتى الآن. اختر عرضاً بالأعلى لإصدار وثيقتك فوراً.</p>';
-                return;
-            }}
-            container.innerHTML = policies.slice(0, 6).map(pol => `
-                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-                    <div>
-                        <span class="font-mono font-black text-emerald-700 text-sm block">${{pol.PolicyNumber}}</span>
-                        <strong class="text-slate-900">${{pol.CustomerName}}</strong>
-                        <span class="text-slate-500 block mt-0.5">${{pol.OfferName}} | الهوية: ${{pol.NationalId}} | المركبة: ${{pol.VehicleSerial}}</span>
-                        <span class="text-slate-400 text-[11px] block mt-0.5">الدفع: ${{pol.PaymentMethod}} (**** ${{pol.CardLast4 || '3344'}})</span>
-                    </div>
-                    <div class="text-left">
-                        <span class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full text-[10px] font-black block mb-1">سارية المفعول</span>
-                        <strong class="font-mono text-sm text-slate-900">${{pol.TotalAmount}} ر.س</strong>
-                    </div>
-                </div>
-            `).join('');
         }}
 
         function applyUrlCustomerParams() {{
@@ -1518,7 +1471,7 @@ def _render_independent_company_site(provider_id: str) -> str:
                 <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
                     <div class="flex justify-between font-bold"><span class="font-mono text-emerald-700">${{pol.PolicyNumber}}</span><span>${{pol.TotalAmount}} ر.س</span></div>
                     <div class="text-slate-600 mt-0.5">${{pol.CustomerName}} | الهوية: ${{pol.NationalId}}</div>
-                    <div class="text-slate-400 text-[11px]">${{pol.OfferName}} | بطاقة ****${{pol.CardLast4 || '3344'}}</div>
+                    <div class="text-slate-400 text-[11px]">${{pol.OfferName}} | بطاقة ****${{pol.CardLast4 || '0000'}}</div>
                 </div>
             `).join('') || '<p class="text-slate-400">لا توجد وثائق مصدرة بعد.</p>';
         }}
@@ -1593,6 +1546,7 @@ def _render_independent_company_site(provider_id: str) -> str:
                 `${{CITY_AR[ccity]}} | ${{GENDER_AR[cgender]}} | ${{ACC_AR[cacc]}} | ${{CARS_AR[ccars]}}`;
             document.getElementById('chk-total-amt').textContent = totalWithVat + ' ر.س';
 
+            // تعبئة الهوية والرقم التسلسلي فقط إذا كان المستخدم قد أدخلهما بنفسه
             document.getElementById('chk-cust-id').value = cid;
             document.getElementById('chk-cust-serial').value = cserial;
 
@@ -1693,7 +1647,7 @@ def companies_directory_home():
                 <div>
                     <h2 class="text-xl font-black text-slate-900 group-hover:underline">{c['name']}</h2>
                     <p class="text-xs text-slate-500 mt-1">{c['slogan']}</p>
-                    <span class="inline-block mt-2 text-[11px] font-bold bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-lg"></span>
+                    <span class="inline-block mt-2 text-[11px] font-bold bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-lg">باقات متنوعة (اقتصادي / متوسط / VIP)</span>
                 </div>
             </div>
             <i class="fa-solid fa-arrow-left text-slate-400 group-hover:text-slate-900 transition"></i>
@@ -1703,7 +1657,7 @@ def companies_directory_home():
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>المواقع المستقلة لشركات التأمين</title>
+    <title>شركات التأمين</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -1712,7 +1666,8 @@ def companies_directory_home():
 <body class="min-h-screen flex items-center justify-center p-6">
     <div class="max-w-4xl w-full space-y-6">
         <div class="text-center">
-            <h1 class="text-3xl font-black text-slate-900">شركات التأمين </h1>
+            <h1 class="text-3xl font-black text-slate-900">المواقع الإلكترونية المستقلة لشركات التأمين</h1>
+            <p class="text-slate-600 text-sm mt-2">اختر موقع الشركة للدخول إلى واجهتها المستقلة:</p>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">{cards}</div>
     </div>
