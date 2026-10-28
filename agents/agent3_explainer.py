@@ -5,6 +5,7 @@ Agent 3 - Explainer Agent
 
 import sqlite3
 import json
+import os
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 
@@ -41,7 +42,7 @@ CRITERION_EXPLANATIONS = {
         "neutral": "ملاءمة معقولة لملف السائق والمركبة"
     },
     "reliability": {
-        "high": "شركة موثوقة بسجلClaims جيد",
+        "high": "شركة موثوقة بسجل مطالبات جيد",
         "low": "موثوقية الشركة قد تكون أقل من المنافسين",
         "neutral": "موثوقية متوسطة للشركة"
     },
@@ -69,7 +70,13 @@ ADDON_LABELS = {
 
 class ExplainerAgent:
     def __init__(self, db_path: str = "../database/thiqa.db"):
-        self.db_path = db_path
+        default_path = os.path.join(
+            os.path.dirname(__file__), "..", "database", "thiqa.db"
+        )
+        configured_path = os.getenv("THIQA_DB_PATH")
+        if db_path == "../database/thiqa.db":
+            db_path = configured_path or default_path
+        self.db_path = os.path.abspath(db_path)
 
     def _get_db_connection(self):
         """Create a database connection."""
@@ -189,13 +196,20 @@ class ExplainerAgent:
         weighted_contributions = selected.get("weighted_contributions", {})
 
         # Generate main reasons
+        plan = f" ({selected['plan_name']})" if selected.get('plan_name') else ""
         main_reasons = (
-            f"تم اختيار عرض {selected['provider_name']} بقسط {selected['premium']} ريال سنوياً "
+            f"تم اختيار عرض {selected['provider_name']}{plan} بقسط {selected['premium']} ريال سنوياً "
             f"لأنه يحقق أفضل توازن بين السعر والتغطية والموثوقية لملفك الحالي."
         )
 
         # Generate criteria-based explanations (why this package won)
         criteria_explanations = self._generate_criteria_explanations(breakdown, weighted_contributions)
+        if selected.get("requested_add_ons_matched"):
+            labels = ", ".join(ADDON_LABELS.get(a, a) for a in selected["requested_add_ons_matched"])
+            criteria_explanations.append(f"يتضمن الإضافات المطلوبة: {labels}.")
+        if selected.get("requested_add_ons_missing"):
+            labels = ", ".join(ADDON_LABELS.get(a, a) for a in selected["requested_add_ons_missing"])
+            criteria_explanations.append(f"لا يتضمن الإضافات المطلوبة: {labels}.")
 
         # Generate traditional strengths (keeping backward compatibility)
         strengths = []

@@ -28,7 +28,7 @@ from datetime import date
 import httpx
 
 from insurer_adapters import ADAPTERS, InvalidInsurerResponse, normalize_coverage
-from insurers_config import CANONICAL_ADDONS, load_insurers
+from insurers_config import CANONICAL_ADDONS, load_insurers_from_db
 
 logger = logging.getLogger("thiqa.agent1")
 
@@ -127,6 +127,22 @@ def validate_customer_data(data: dict, today: date | None = None) -> dict:
         err("requested_add_ons", "قائمة الإضافات المطلوبة غير صحيحة")
         addons_raw = []
 
+    risk_defaults = {"city": "riyadh", "gender": "male", "has_accidents": "no", "cars_count": "single"}
+    risk = {}
+    valid_risk = {
+        "city": {"riyadh", "jeddah", "eastern", "other"},
+        "gender": {"male", "female"},
+        "has_accidents": {"yes", "no"},
+        "cars_count": {"single", "multiple"},
+    }
+    for key, default in risk_defaults.items():
+        value = str(data.get(key) or default).strip().lower()
+        if key == "city" and value not in valid_risk[key]:
+            value = "other"
+        elif value not in valid_risk[key]:
+            err(key, f"قيمة {key} غير صحيحة")
+        risk[key] = value
+
     if errors:
         raise InvalidCustomerData(errors)
 
@@ -143,6 +159,7 @@ def validate_customer_data(data: dict, today: date | None = None) -> dict:
         "coverage_type": coverage,
         "requested_add_ons": list(addons_raw),
         "priority": priority,
+        **risk,
     }
 
 
@@ -194,16 +211,20 @@ class DataReceiverAgent:
         max_attempts  : عدد المحاولات لكل شركة عند الأعطال السريعة (انقطاع اتصال / 5xx / 429). الـ timeout لا يُعاد.
         retry_backoff : الانتظار بين المحاولات بالثواني.
         """
-        self.insurers = insurers if insurers is not None else load_insurers()
+        self._configured_insurers = insurers
+        self.insurers = insurers
         self._transport = transport
         self.max_attempts = max(1, max_attempts)
         self.retry_backoff = retry_backoff
 
     async def run(self, customer_data: dict) -> dict:
+        """Keep risk inputs request-scoped to prevent concurrent customers leaking risk."""
         # 1-2. استلام + تحقق + هيكلة
         profile = validate_customer_data(customer_data)
 
         # 3-6. بناء الطلبات، إرسالها بالتوازي، استقبال الردود، توحيدها
+        if self._configured_insurers is None:
+            self.insurers = load_insurers_from_db()
         results = await self._fetch_all(profile)
         provider_status = [r.to_status() for r in results]
         quotes = [q for r in results for q in r.quotes]

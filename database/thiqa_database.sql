@@ -1,137 +1,155 @@
--- 1. Users
+-- =====================================================================
+-- THIQA — المخطط المنطقي لقاعدة البيانات (MySQL 8) — مرجع التقرير
+-- مطابق منطقياً لملف database/schema.sqlite.sql المستخدم فعلياً في النظام.
+-- معرّفات الشركات نصية (مثل tawuniya) لتتوافق مع خدمة الوكلاء.
+-- =====================================================================
+
+-- 1) المستخدمون
 CREATE TABLE Users (
-    UserId INT PRIMARY KEY AUTO_INCREMENT,
-    UserName VARCHAR(50),
-    Email VARCHAR(100),
-    PasswordHash VARCHAR(255),
-    IsAdmin BOOLEAN,
-    CreatedAt DATETIME
+    UserId        BIGINT       AUTO_INCREMENT PRIMARY KEY,
+    UserName      VARCHAR(30)  NOT NULL UNIQUE,
+    Email         VARCHAR(254) NOT NULL UNIQUE,
+    PasswordHash  VARCHAR(255) NOT NULL,
+    IsAdmin       BOOLEAN      NOT NULL DEFAULT FALSE,
+    IsActive      BOOLEAN      NOT NULL DEFAULT TRUE,
+    CreatedAt     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    LastLoginAt   TIMESTAMP    NULL
 );
 
--- 2. Customer Profiles
+-- 2) ملف العميل
 CREATE TABLE Customer_Profiles (
-    ProfileId INT PRIMARY KEY AUTO_INCREMENT,
-    UserId INT NOT NULL,
-    FullName VARCHAR(100),
-    NationalId VARCHAR(20),
-    DateOfBirth DATE,
-    DriverLicenseNo VARCHAR(30),
-
-    FOREIGN KEY (UserId)
-        REFERENCES Users(UserId)
+    ProfileId        BIGINT       AUTO_INCREMENT PRIMARY KEY,
+    UserId           BIGINT       NOT NULL UNIQUE,
+    FullName         VARCHAR(100),
+    NationalId       VARCHAR(20),
+    DateOfBirth      DATE,
+    DriverLicenseNo  VARCHAR(30),
+    UpdatedAt        TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (UserId) REFERENCES Users(UserId) ON DELETE CASCADE
 );
 
--- 3. Vehicles
+-- 3) المركبات
 CREATE TABLE Vehicles (
-    VehicleId INT PRIMARY KEY AUTO_INCREMENT,
-    ProfileId INT NOT NULL,
-    SerialNumber VARCHAR(40),
-    MakeModelYear VARCHAR(80),
-    EstimatedValue DECIMAL(10,2),
-    PurposeOfUse VARCHAR(40),
-
-    FOREIGN KEY (ProfileId)
-        REFERENCES Customer_Profiles(ProfileId)
+    VehicleId       BIGINT        AUTO_INCREMENT PRIMARY KEY,
+    ProfileId       BIGINT        NOT NULL,
+    SerialNumber    VARCHAR(40)   NOT NULL,
+    MakeModelYear   VARCHAR(80),
+    EstimatedValue  DECIMAL(12,2),
+    PurposeOfUse    VARCHAR(40),
+    UNIQUE (ProfileId, SerialNumber),
+    FOREIGN KEY (ProfileId) REFERENCES Customer_Profiles(ProfileId) ON DELETE CASCADE
 );
 
--- 4. Insurance Providers
+-- 4) شركات التأمين
 CREATE TABLE Insurance_Providers (
-    ProviderId INT PRIMARY KEY AUTO_INCREMENT,
-    ProviderName VARCHAR(100),
-    LogoUrl VARCHAR(255),
-    Website VARCHAR(255)
+    ProviderId       VARCHAR(40)  PRIMARY KEY,
+    ProviderName     VARCHAR(150) NOT NULL,
+    LogoUrl          VARCHAR(500),
+    Website          VARCHAR(500),
+    IsActive         BOOLEAN      NOT NULL DEFAULT TRUE,
+    Reliability      DECIMAL(4,3),
+    WorkshopNetwork  VARCHAR(30),
+    DigitalScore     DECIMAL(4,3)
 );
 
--- 5. API Settings
+-- 5) إعدادات الاتصال بـ API
 CREATE TABLE API_Settings (
-    SettingId INT PRIMARY KEY AUTO_INCREMENT,
-    ProviderId INT NOT NULL,
-    Endpoint VARCHAR(255),
-    AuthKey VARCHAR(255),
-    Protocol VARCHAR(40),
-    Timeout INT,
-
-    FOREIGN KEY (ProviderId)
-        REFERENCES Insurance_Providers(ProviderId)
+    SettingId   BIGINT        AUTO_INCREMENT PRIMARY KEY,
+    ProviderId  VARCHAR(40)   NOT NULL UNIQUE,
+    Endpoint    VARCHAR(1000) NOT NULL,
+    AuthKey     TEXT          NULL,
+    AuthScheme  VARCHAR(20)   NOT NULL DEFAULT 'x-api-key',
+    Adapter     VARCHAR(30)   NOT NULL,
+    Protocol    VARCHAR(30)   NOT NULL DEFAULT 'REST/JSON',
+    Timeout     INT           NOT NULL DEFAULT 5,
+    CHECK (AuthScheme IN ('x-api-key', 'bearer')),
+    CHECK (Timeout BETWEEN 1 AND 30),
+    FOREIGN KEY (ProviderId) REFERENCES Insurance_Providers(ProviderId) ON DELETE CASCADE
 );
 
--- 6. Quote Requests
+-- 6) طلبات التوصية
 CREATE TABLE Quote_Requests (
-    RequestId INT PRIMARY KEY AUTO_INCREMENT,
-    ProfileId INT NOT NULL,
-    VehicleId INT NOT NULL,
-    CoverageType VARCHAR(30),
-    RequestedAddOns TEXT,
-    Timestamp DATETIME,
-
-    FOREIGN KEY (ProfileId)
-        REFERENCES Customer_Profiles(ProfileId),
-
-    FOREIGN KEY (VehicleId)
-        REFERENCES Vehicles(VehicleId)
+    RequestId        BIGINT      AUTO_INCREMENT PRIMARY KEY,
+    ProfileId        BIGINT      NOT NULL,
+    VehicleId        BIGINT      NULL,
+    CoverageType     VARCHAR(30),
+    RequestedAddOns  JSON,
+    Timestamp        TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    Status           VARCHAR(20) NOT NULL DEFAULT 'success',
+    ErrorMessage     TEXT,
+    Priority         VARCHAR(20),
+    ProviderStatus   JSON,
+    RequestPayload   JSON,
+    FOREIGN KEY (ProfileId) REFERENCES Customer_Profiles(ProfileId),
+    FOREIGN KEY (VehicleId) REFERENCES Vehicles(VehicleId)
 );
 
--- 7. Retrieved Quotes
+-- 7) العروض المسترجعة
 CREATE TABLE Retrieved_Quotes (
-    QuoteId INT PRIMARY KEY AUTO_INCREMENT,
-    RequestId INT NOT NULL,
-    ProviderId INT NOT NULL,
-    Premium DECIMAL(10,2),
-    CoverageType VARCHAR(30),
-    Deductible DECIMAL(10,2),
-    AddOns TEXT,
-
-    FOREIGN KEY (RequestId)
-        REFERENCES Quote_Requests(RequestId),
-
-    FOREIGN KEY (ProviderId)
-        REFERENCES Insurance_Providers(ProviderId)
+    QuoteId           BIGINT        AUTO_INCREMENT PRIMARY KEY,
+    RequestId         BIGINT        NOT NULL,
+    ProviderId        VARCHAR(40)   NOT NULL,
+    Premium           DECIMAL(12,2),
+    CoverageType      VARCHAR(30),
+    Deductible        DECIMAL(12,2),
+    AddOns            JSON,
+    PlanName          VARCHAR(255),
+    ExternalQuoteId   VARCHAR(100),
+    SuitabilityScore  DECIMAL(8,5),
+    `Rank`            INT,
+    QuoteData         JSON,
+    FOREIGN KEY (RequestId)  REFERENCES Quote_Requests(RequestId) ON DELETE CASCADE,
+    FOREIGN KEY (ProviderId) REFERENCES Insurance_Providers(ProviderId)
 );
 
--- 8. Recommendations
+-- 8) التوصيات
 CREATE TABLE Recommendations (
-    RecId INT PRIMARY KEY AUTO_INCREMENT,
-    RequestId INT NOT NULL,
-    SelectedQuoteId INT NOT NULL,
-    SuitabilityScore DECIMAL(5,4),
-    CreatedAt DATETIME,
-
-    FOREIGN KEY (RequestId)
-        REFERENCES Quote_Requests(RequestId),
-
-    FOREIGN KEY (SelectedQuoteId)
-        REFERENCES Retrieved_Quotes(QuoteId),
-
-    UNIQUE (RequestId)
+    RecId             BIGINT       AUTO_INCREMENT PRIMARY KEY,
+    RequestId         BIGINT       NOT NULL UNIQUE,
+    SelectedQuoteId   BIGINT       NULL,
+    SuitabilityScore  DECIMAL(8,5),
+    CreatedAt         TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (RequestId)       REFERENCES Quote_Requests(RequestId) ON DELETE CASCADE,
+    FOREIGN KEY (SelectedQuoteId) REFERENCES Retrieved_Quotes(QuoteId)
 );
 
--- 9. Explanations
+-- 9) التفسيرات
 CREATE TABLE Explanations (
-    ExplId INT PRIMARY KEY AUTO_INCREMENT,
-    RecId INT NOT NULL,
-    MainReasons TEXT,
-    CriteriaBreakdown TEXT,
-    ComparisonText TEXT,
-
-    FOREIGN KEY (RecId)
-        REFERENCES Recommendations(RecId),
-
-    UNIQUE (RecId)
+    ExplId             BIGINT AUTO_INCREMENT PRIMARY KEY,
+    RecId              BIGINT NOT NULL UNIQUE,
+    MainReasons        TEXT,
+    CriteriaBreakdown  JSON,
+    ComparisonText     TEXT,
+    FOREIGN KEY (RecId) REFERENCES Recommendations(RecId) ON DELETE CASCADE
 );
 
--- 10. Company Offers
-CREATE TABLE Company_Offers (
-    OfferId INT PRIMARY KEY AUTO_INCREMENT,
-    ProviderId INT NOT NULL,
-    OfferName VARCHAR(100) NOT NULL,
-    CoverageType VARCHAR(30) NOT NULL, -- 'TPL' or 'Comprehensive'
-    BasePremiumRate DECIMAL(5,4) NOT NULL, -- Rate as percentage of vehicle value
-    MinPremium DECIMAL(10,2) NOT NULL,
-    Description TEXT,
-    IsActive BOOLEAN NOT NULL DEFAULT 1,
-    CreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    UpdatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-    FOREIGN KEY (ProviderId)
-        REFERENCES Insurance_Providers(ProviderId)
+-- 10) جلسات الدخول
+CREATE TABLE Sessions (
+    SessionId     BIGINT      AUTO_INCREMENT PRIMARY KEY,
+    UserId        BIGINT      NOT NULL,
+    TokenHash     CHAR(64)    NOT NULL UNIQUE,
+    CreatedAt     BIGINT      NOT NULL,
+    LastSeenAt    BIGINT      NOT NULL,
+    ExpiresAt     BIGINT      NOT NULL,
+    MaxExpiresAt  BIGINT      NOT NULL,
+    Kind          VARCHAR(20) NOT NULL DEFAULT 'customer',
+    FOREIGN KEY (UserId) REFERENCES Users(UserId) ON DELETE CASCADE
 );
+
+-- 11) سجل عمليات المسؤولين
+CREATE TABLE Audit_Log (
+    AuditId      BIGINT       AUTO_INCREMENT PRIMARY KEY,
+    AdminUserId  BIGINT       NULL,
+    Action       VARCHAR(100) NOT NULL,
+    EntityType   VARCHAR(50),
+    EntityId     VARCHAR(100),
+    Details      JSON,
+    CreatedAt    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (AdminUserId) REFERENCES Users(UserId)
+);
+
+-- الفهارس
+CREATE INDEX idx_requests_profile_time ON Quote_Requests(ProfileId, Timestamp);
+CREATE INDEX idx_quotes_request_rank   ON Retrieved_Quotes(RequestId, `Rank`);
+CREATE INDEX idx_sessions_expiry       ON Sessions(ExpiresAt);
+CREATE INDEX idx_audit_time            ON Audit_Log(CreatedAt);

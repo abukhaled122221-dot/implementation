@@ -1,0 +1,9 @@
+INFO:     127.0.0.1:51261 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55597 - "POST /recommend HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52180 - "POST /recommend HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52180 - "POST /recommend HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52180 - "POST /recommend HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52180 - "POST /recommend HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51313 - "POST /recommend HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49677 - "POST /recommend HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60030 - "POST /recommend HTTP/1.1" 200 OK

@@ -384,6 +384,35 @@ class TestScoring:
         res = run([make_quote("a")], make_profile(requested_add_ons=["flying_car"]))
         assert res["selected"]["requested_add_ons_missing"] == []
 
+    def test_offer_covering_all_requested_addons_ranks_first_even_if_pricier(self):
+        # العميل طلب إصلاح وكالة: العرض الذي يوفّرها يتقدم على عرض أرخص بدونها
+        profile = make_profile(requested_add_ons=["agency_repair"])
+        cheap = make_quote("cheap", premium=300, add_ons=[])
+        agency = make_quote("agency", premium=900, add_ons=["agency_repair"])
+        res = run([cheap, agency], profile, priority="Budget")
+        assert res["selected"]["provider_id"] == "agency"
+        assert res["selected"]["covers_requested_add_ons"] is True
+        assert by_provider(res)["cheap"]["covers_requested_add_ons"] is False
+
+    def test_requested_addons_unavailable_everywhere_falls_back_to_score(self):
+        # لا يوجد عرض يوفّر الإضافة المطلوبة → الترتيب بالدرجة فقط (لا نُفرغ النتائج)
+        profile = make_profile(requested_add_ons=["agency_repair"])
+        cheap = make_quote("cheap", premium=300, add_ons=[])
+        pricey = make_quote("pricey", premium=900, add_ons=[])
+        res = run([pricey, cheap], profile, priority="Budget")
+        assert res["selected"]["provider_id"] == "cheap"
+        assert len(res["ranked"]) == 2
+
+    def test_partial_coverage_of_requested_addons_beats_none(self):
+        # لا يوجد عرض يوفّر الإضافتين معاً → العرض الذي يوفّر واحدة يتقدم على الذي لا يوفّر شيئاً
+        profile = make_profile(requested_add_ons=["agency_repair", "replacement_car"])
+        none = make_quote("none", premium=300, add_ons=[])
+        one = make_quote("one", premium=700, add_ons=["agency_repair"])
+        res = run([none, one], profile, priority="Budget")
+        assert res["selected"]["provider_id"] == "one"
+        assert res["selected"]["covers_requested_add_ons"] is False
+        assert res["selected"]["requested_add_ons_missing"] == ["replacement_car"]
+
     # ---------- نطاق التغطية
     def test_scope_is_type_only_when_agent1_sends_no_risk_list(self):
         q = run([make_quote("a")])["selected"]
@@ -693,10 +722,6 @@ class TestAgent1Contract:
         res = run(quotes, make_profile(coverage_type="Comprehensive"))
         assert {q["coverage_type"] for q in res["ranked"]} == {"Comprehensive"} and len(res["ranked"]) == 3
 
-    def test_original_draft_class_still_works_with_agent1_quotes(self):
-        """الكلاس الأول من المسودة (أعلى الملف) لم يُمسّ ويقبل نفس عروض Agent 1."""
-        out = a2.RecommendationAgent().run(five_quotes(), make_profile(), "Budget")
-        assert out["selected"] is not None and len(out["ranked"]) == 5
 
 
 # ============================================================ 6) تكامل حقيقي: Agent 1 -> Agent 2

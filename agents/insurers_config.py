@@ -15,6 +15,8 @@
 """
 
 import os
+import sqlite3
+from urllib.parse import urlsplit
 
 DEFAULT_BASE_URL = "http://127.0.0.1:8001"  # خدمة Mock Insurance API
 
@@ -93,3 +95,59 @@ def load_insurers(base_url: str | None = None, timeout: float | None = None) -> 
             "api_key": api_key_for(d["provider_id"]),
         })
     return insurers
+
+def load_insurers_from_db(
+    base_url: str | None = None,
+    timeout: float | None = None,
+    include_inactive: bool = False,
+) -> list[dict]:
+    """Load current provider settings per request so admin edits need no restart."""
+    db_path = os.getenv("THIQA_DB_PATH") or os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "database", "thiqa.db")
+    )
+    try:
+        uri = "file:" + os.path.abspath(db_path).replace("\\", "/") + "?mode=ro"
+        conn = sqlite3.connect(uri, uri=True, timeout=1)
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute("""
+            SELECT p.ProviderId, p.ProviderName, p.IsActive, p.Reliability, p.WorkshopNetwork, p.DigitalScore,
+                   a.Endpoint, a.AuthKey, a.AuthScheme, a.Adapter, a.Timeout
+            FROM Insurance_Providers p JOIN API_Settings a ON a.ProviderId=p.ProviderId
+            ORDER BY p.ProviderId
+        """).fetchall()
+        conn.close()
+        # الرجوع للإعدادات الافتراضية فقط إذا لم تُضبط أي شركة في قاعدة البيانات إطلاقاً.
+        # إذا عطّل الأدمن كل الشركات فالنتيجة الصحيحة قائمة فارغة (لا عروض) — لا إعادة تفعيل صامتة.
+        if not rows:
+            return load_insurers(base_url, timeout)
+        if not include_inactive:
+            rows = [row for row in rows if row["IsActive"]]
+
+        def number_or(value, default):
+            return float(value) if value is not None else default
+
+        providers = []
+        for row in rows:
+            endpoint = row["Endpoint"]
+            parts = urlsplit(endpoint)
+            fallback = next((d for d in _INSURER_DEFS if d["provider_id"] == row["ProviderId"]), {})
+            providers.append({
+                "provider_id": row["ProviderId"], "name": row["ProviderName"],
+                "active": bool(row["IsActive"]), "_source": "db",
+                "adapter": row["Adapter"], "path": parts.path or fallback.get("path", "/"),
+                "base_url": base_url.rstrip("/") if base_url else (f"{parts.scheme}://{parts.netloc}" if parts.scheme else (os.getenv("INSURERS_BASE_URL") or DEFAULT_BASE_URL).rstrip("/")),
+                "auth_scheme": (row["AuthScheme"] or "x-api-key").lower(),
+                "api_key": row["AuthKey"] or api_key_for(row["ProviderId"]),
+                "protocol": "REST/JSON", "timeout": timeout if timeout is not None else float(row["Timeout"] or 5),
+                "reliability": number_or(row["Reliability"], fallback.get("reliability", 0.5)),
+                "workshop_network": row["WorkshopNetwork"] or fallback.get("workshop_network", "متوسط"),
+                "digital_score": number_or(row["DigitalScore"], fallback.get("digital_score", 0.5)),
+            })
+        return providers
+    except (sqlite3.Error, OSError):
+        return load_insurers(base_url, timeout)
+
+
+def insurer_defaults() -> list[dict]:
+    """Return built-in definitions with current environment endpoint/key defaults."""
+    return load_insurers()

@@ -7,6 +7,10 @@
 from fastapi import Body, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+import os
+import time
+import httpx
+from insurers_config import load_insurers_from_db
 
 from agent1_receiver import DataReceiverAgent, InvalidCustomerData, NoOffersAvailable
 from agent2_recommender import RecommendationAgentV2
@@ -18,7 +22,7 @@ app = FastAPI(title="Thiqa Agents Service")
 # يسمح لسيرفر Node.js (على بورت مختلف) بالاتصال بهذه الخدمة
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[x.strip() for x in os.getenv("AGENTS_ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",") if x.strip()],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -30,6 +34,44 @@ agent3 = ExplainerAgent()
 
 def _error(status: int, message: str, **extra):
     return JSONResponse(status_code=status, content={"error": message, **extra})
+
+
+@app.get("/providers")
+def providers():
+    """Expose provider connection metadata without returning API credentials."""
+    return [
+        {
+            "provider_id": insurer["provider_id"],
+            "name": insurer["name"],
+            "adapter": insurer["adapter"],
+            "url": insurer["base_url"].rstrip("/") + insurer["path"],
+            "auth_scheme": insurer["auth_scheme"],
+            "timeout": insurer["timeout"],
+            "active": insurer.get("active", True),
+            "source": insurer.get("_source", "defaults"),
+        }
+        for insurer in load_insurers_from_db(include_inactive=True)
+    ]
+
+
+@app.post("/providers/test")
+async def provider_test(payload: dict = Body(...)):
+    """Probe DB-loaded insurer settings without saving a quote or customer data."""
+    provider_id = payload.get("provider_id") if isinstance(payload, dict) else None
+    insurer = next(
+        (
+            item
+            for item in load_insurers_from_db(include_inactive=True)
+            if item["provider_id"] == provider_id
+        ),
+        None,
+    )
+    if insurer is None:
+        return JSONResponse(status_code=404, content={"error": "provider not found"})
+    sample = {"national_id": "1098765432", "birth_date": "1990-01-01", "driver_age": 36, "vehicle_serial": "123456789", "manufacture_year": 2021, "vehicle_value": 50000, "vehicle_age": 5, "purpose_of_use": "personal", "annual_mileage": "medium", "coverage_type": "TPL", "priority": "Balanced", "requested_add_ons": [], "city": "riyadh", "gender": "male", "has_accidents": "no", "cars_count": "single"}
+    async with httpx.AsyncClient() as client:
+        result = await agent1._query_insurer(client, insurer, sample)
+    return {"provider_id": provider_id, "ok": result.ok, "error_type": result.error_type, "error_message": result.error_message, "latency_ms": result.latency_ms, "offers_count": len(result.quotes)}
 
 
 @app.get("/health")
@@ -62,13 +104,8 @@ async def recommend(payload: dict = Body(...)):
         # Run the agent pipeline to get the recommendation
         result = coordinate_recommendation(step1, agent2, agent3)
 
-        # Database persistence is intentionally not attempted here yet.
-        # The current schema requires linked Customer_Profiles, Vehicles, Retrieved_Quotes
-        # and a non-null Recommendations.SelectedQuoteId. The UI currently has no
-        # authenticated account/profile workflow, so inserting partial records here
-        # would violate foreign-key/NOT NULL constraints or create misleading records.
-        # The recommendation pipeline returns its result independently; persistence
-        # must be implemented together with the profile/vehicle/quote write sequence.
+        # الحفظ في قاعدة البيانات لا يتم هنا: سيرفر Node يحفظ الطلب والعروض والتوصية
+        # والتفسير في معاملة واحدة مرتبطة بحساب العميل (server/services/recommendationStore.js).
         return result
     except NoEligibleOffers as e:
         return _error(503, str(e), provider_status=e.provider_status)

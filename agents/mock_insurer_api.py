@@ -8,16 +8,17 @@
 
 import asyncio
 import hashlib
+import hmac
 import json
 import os
 import sqlite3
 from datetime import date, datetime, timedelta
 from typing import Literal
 
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from insurers_config import api_key_for
 
@@ -32,7 +33,7 @@ app.add_middleware(
 
 FAULT_TYPES = {"timeout", "500", "503", "bad_json", "empty", "malformed"}
 PROVIDERS = {"tawuniya", "rajhi", "medgulf", "acig"}
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "database", "thiqa.db")
+DB_PATH = os.getenv("INSURERS_DB_PATH") or os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "database", "insurers_mock.db"))
 
 
 def _faults_from_env() -> dict[str, str]:
@@ -46,20 +47,6 @@ def _faults_from_env() -> dict[str, str]:
 
 
 FAULTS: dict[str, str] = _faults_from_env()
-
-ACTIVE_CUSTOMER_RISK = {
-    "city": "riyadh",
-    "gender": "male",
-    "has_accidents": "no",
-    "cars_count": "single",
-}
-
-ADMIN_CREDENTIALS = {
-    "tawuniya": {"username": "admin", "password": "123"},
-    "rajhi": {"username": "admin", "password": "123"},
-    "medgulf": {"username": "admin", "password": "123"},
-    "acig": {"username": "admin", "password": "123"},
-}
 
 DEFAULT_PRICING_RULES = {
     "tawuniya": {
@@ -213,29 +200,52 @@ DEFAULT_28_OFFERS = [
 ]
 
 
+def _tier_defaults(rate: float, provider_id: str) -> tuple[float, list[str]]:
+    """Return the seeded offer's deductible and add-ons for its price tier.
+
+    Higher tiers include more add-ons and lower deductibles. The top (VIP) tier of
+    every company is described as including agency repair ("إصلاح وكالة"), so it
+    always gets agency_repair on top of the company's standard add-ons.
+    """
+    addons = list(DEFAULT_PRICING_RULES[provider_id]["addons"])
+    if rate >= 2400:
+        return 500, ["agency_repair"] + [a for a in addons if a != "agency_repair"]
+    if rate >= 1800:
+        return 1000, addons[:2]
+    if rate >= 1300:
+        return 1500, addons[:1]
+    return 2000, addons[:1]
+
+
+def _backfill_offer_tiers(cur, only_empty: bool = True) -> None:
+    """Fill Deductible/AddOnsJson from the tier table for offers that predate those columns.
+
+    Called only right after a schema/legacy migration — never on normal startups, so an
+    insurer admin who deliberately sets an offer to "no add-ons" is not overridden.
+    """
+    rows = cur.execute(
+        "SELECT OfferId, ProviderId, BasePremiumRate, AddOnsJson FROM Company_Offers"
+    ).fetchall()
+    for offer_id, provider_id, rate, addons_json in rows:
+        if provider_id not in DEFAULT_PRICING_RULES:
+            continue
+        if only_empty and addons_json not in (None, "", "[]"):
+            continue
+        deductible, addons = _tier_defaults(float(rate), provider_id)
+        cur.execute(
+            "UPDATE Company_Offers SET Deductible=?, AddOnsJson=? WHERE OfferId=?",
+            (deductible, json.dumps(addons), offer_id),
+        )
+
+
 def _init_db():
+    new_mock_db = not os.path.exists(DB_PATH)
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
     cur.executescript("""
-        CREATE TABLE IF NOT EXISTS Insurance_Providers (
-            ProviderId   TEXT PRIMARY KEY,
-            ProviderName VARCHAR(100),
-            LogoUrl      VARCHAR(255),
-            Website      VARCHAR(255)
-        );
-
-        CREATE TABLE IF NOT EXISTS API_Settings (
-            SettingId  INTEGER PRIMARY KEY AUTOINCREMENT,
-            ProviderId TEXT NOT NULL,
-            Endpoint   VARCHAR(255),
-            AuthKey    VARCHAR(255),
-            Protocol   VARCHAR(40),
-            Timeout    INTEGER
-        );
-
-        CREATE TABLE IF NOT EXISTS Company_Offers (
+CREATE TABLE IF NOT EXISTS Company_Offers (
             OfferId           INTEGER PRIMARY KEY AUTOINCREMENT,
             ProviderId        TEXT NOT NULL,
             OfferName         VARCHAR(100) NOT NULL,
@@ -243,6 +253,8 @@ def _init_db():
             BasePremiumRate   DECIMAL(10,4) NOT NULL,
             MinPremium        DECIMAL(10,2) NOT NULL,
             Description       TEXT,
+            Deductible        REAL NOT NULL DEFAULT 1500,
+            AddOnsJson        TEXT NOT NULL DEFAULT '[]',
             IsActive          BOOLEAN NOT NULL DEFAULT 1,
             CreatedAt         DATETIME NOT NULL DEFAULT (datetime('now')),
             UpdatedAt         DATETIME NOT NULL DEFAULT (datetime('now'))
@@ -287,6 +299,16 @@ def _init_db():
         );
     """)
 
+    offer_columns = [c[1] for c in cur.execute("PRAGMA table_info(Company_Offers)").fetchall()]
+    added_offer_columns = False
+    if "Deductible" not in offer_columns:
+        cur.execute("ALTER TABLE Company_Offers ADD COLUMN Deductible REAL NOT NULL DEFAULT 1500")
+        added_offer_columns = True
+    if "AddOnsJson" not in offer_columns:
+        cur.execute("ALTER TABLE Company_Offers ADD COLUMN AddOnsJson TEXT NOT NULL DEFAULT '[]'")
+        added_offer_columns = True
+    if added_offer_columns:
+        _backfill_offer_tiers(cur, only_empty=False)
     existing_cols_rules = [c[1] for c in cur.execute("PRAGMA table_info(Company_Pricing_Rules)").fetchall()]
     if "CompBase" not in existing_cols_rules:
         cur.execute("ALTER TABLE Company_Pricing_Rules ADD COLUMN CompBase REAL NOT NULL DEFAULT 1500.0")
@@ -302,17 +324,33 @@ def _init_db():
         if col_name not in existing_cols_pol:
             cur.execute(f"ALTER TABLE Issued_Policies ADD COLUMN {col_name} {col_def}")
 
+    legacy_path = os.getenv("THIQA_DB_PATH")
+    if new_mock_db and legacy_path and os.path.abspath(legacy_path) != os.path.abspath(DB_PATH) and os.path.exists(legacy_path):
+        legacy = sqlite3.connect(legacy_path)
+        legacy.row_factory = sqlite3.Row
+        try:
+            for table in ("Company_Offers", "Company_Pricing_Rules", "Issued_Policies"):
+                exists = legacy.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)).fetchone()
+                if not exists:
+                    continue
+                source_cols = [x[1] for x in legacy.execute(f"PRAGMA table_info({table})")]
+                target_cols = [x[1] for x in cur.execute(f"PRAGMA table_info({table})")]
+                common = [name for name in source_cols if name in target_cols]
+                if not cur.execute(f"SELECT 1 FROM {table} LIMIT 1").fetchone():
+                    cols = ",".join(common)
+                    marks = ",".join("?" for _ in common)
+                    values = [tuple(row[name] for name in common) for row in legacy.execute(f"SELECT {cols} FROM {table}")]
+                    if values:
+                        cur.executemany(f"INSERT OR IGNORE INTO {table} ({cols}) VALUES ({marks})", values)
+                    # العروض القديمة لم يكن لها تحمّل/إضافات لكل باقة → نعبئها من جدول الفئات
+                    if table == "Company_Offers" and "AddOnsJson" not in source_cols:
+                        _backfill_offer_tiers(cur, only_empty=False)
+                legacy.execute(f"DROP TABLE {table}")
+            legacy.commit()
+        finally:
+            legacy.close()
+
     for pid, r in DEFAULT_PRICING_RULES.items():
-        cur.execute(
-            "INSERT OR IGNORE INTO Insurance_Providers (ProviderId, ProviderName, Website) VALUES (?, ?, ?)",
-            (pid, r["name"], f"http://127.0.0.1:8001/{pid}")
-        )
-        existing_api = cur.execute("SELECT SettingId FROM API_Settings WHERE ProviderId = ?", (pid,)).fetchone()
-        if not existing_api:
-            cur.execute(
-                "INSERT INTO API_Settings (ProviderId, Endpoint, AuthKey, Protocol, Timeout) VALUES (?, ?, ?, 'REST/JSON', 5)",
-                (pid, f"http://127.0.0.1:8001{r['endpoint']}", api_key_for(pid))
-            )
         cur.execute(
             """
             INSERT OR IGNORE INTO Company_Pricing_Rules
@@ -328,18 +366,40 @@ def _init_db():
             )
         )
 
+    # البذر فقط عند جدول فارغ: لو حذف أدمن الشركة عرضاً لا نعيد إنشاء كل العروض عند التشغيل التالي
     offers_count = cur.execute("SELECT COUNT(*) FROM Company_Offers").fetchone()[0]
-    if offers_count < 28:
-        cur.execute("DELETE FROM Company_Offers")
+    if offers_count == 0:
         for prov_id, name, cov, rate, min_p, desc in DEFAULT_28_OFFERS:
+            deductible, addons = _tier_defaults(rate, prov_id)
             cur.execute(
                 """
-                INSERT INTO Company_Offers (ProviderId, OfferName, CoverageType, BasePremiumRate, MinPremium, Description, IsActive)
-                VALUES (?, ?, ?, ?, ?, ?, 1)
+                INSERT INTO Company_Offers (ProviderId, OfferName, CoverageType, BasePremiumRate, MinPremium, Description, Deductible, AddOnsJson, IsActive)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
                 """,
-                (prov_id, name, cov, rate, min_p, desc)
+                (
+                    prov_id,
+                    name,
+                    cov,
+                    rate,
+                    min_p,
+                    desc,
+                    deductible,
+                    json.dumps(addons),
+                ),
             )
 
+    cur.executescript("""
+        CREATE TABLE IF NOT EXISTS Company_Admins (ProviderId TEXT PRIMARY KEY, Username TEXT NOT NULL, PasswordSalt BLOB NOT NULL, PasswordHash BLOB NOT NULL);
+        CREATE TABLE IF NOT EXISTS Admin_Sessions (TokenHash TEXT PRIMARY KEY, ProviderId TEXT NOT NULL, ExpiresAt TEXT NOT NULL);
+    """)
+    for pid in PROVIDERS:
+        user = os.getenv(f"{pid.upper()}_PORTAL_USER", f"{pid}_admin")
+        password = os.getenv(f"{pid.upper()}_PORTAL_PASSWORD", {"tawuniya":"Tawuniya@2026","rajhi":"Rajhi@2026","medgulf":"Medgulf@2026","acig":"Acig@2026"}[pid])
+        row = cur.execute("SELECT ProviderId FROM Company_Admins WHERE ProviderId=?", (pid,)).fetchone()
+        if not row:
+            salt = os.urandom(16)
+            digest = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, 310000)
+            cur.execute("INSERT INTO Company_Admins VALUES(?,?,?,?)", (pid, user, salt, digest))
     conn.commit()
 
     conn.row_factory = sqlite3.Row
@@ -370,6 +430,21 @@ def _init_db():
 _init_db()
 
 
+def _session_provider(authorization: str | None, requested_provider: str | None = None) -> str:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="admin authorization required")
+    raw = authorization[7:].strip()
+    conn = sqlite3.connect(DB_PATH)
+    row = conn.execute("SELECT ProviderId FROM Admin_Sessions WHERE TokenHash=? AND ExpiresAt > datetime('now')", (hashlib.sha256(raw.encode()).hexdigest(),)).fetchone()
+    conn.close()
+    if row is None:
+        raise HTTPException(status_code=401, detail="invalid or expired session")
+    provider = row[0]
+    if requested_provider and provider != requested_provider:
+        raise HTTPException(status_code=403, detail="provider mismatch")
+    return provider
+
+
 def _age_from_birth(birth_iso: str) -> int:
     try:
         b = date.fromisoformat(birth_iso)
@@ -389,9 +464,17 @@ def price(
     serial: str,
     use_custom_risk: bool = False,
     custom_risk: dict | None = None,
+    base_override: float | None = None,
 ) -> float:
+    """Price an offer from its tier base and risk multipliers.
+
+    Comprehensive premium is vehicle_value times a tier-specific rate derived
+    from the offer's reference premium (2%–5% of value), with a 500 SAR floor.
+    TPL deliberately omits vehicle value because third-party liability does not
+    insure the vehicle itself.
+    """
     r = PRICING_RULES[provider_id]
-    base = r["tpl_base"] if coverage == "TPL" else r["comp_base"]
+    base = base_override if base_override is not None else (r["tpl_base"] if coverage == "TPL" else r["comp_base"])
     age_mult = 1.35 if age < 25 else 1.10 if age < 30 else 1.10 if age >= 60 else 1.0
     use_mult = 1.25 if "commercial" in (usage or "").lower() else 1.0
     km_mult = {"low": 0.95, "high": 1.08}.get((mileage or "").lower(), 1.0)
@@ -399,15 +482,34 @@ def price(
     jitter = 0.97 + (h % 600) / 10000
 
     risk_mult = 1.0
-    if use_custom_risk or ("PYTEST_CURRENT_TEST" not in os.environ and custom_risk is not None):
-        rk = custom_risk or ACTIVE_CUSTOMER_RISK
+    if custom_risk is not None:
+        rk = custom_risk if "city" in custom_risk else custom_risk.get("risk", {})
         city_mult = r["city_major_mult"] if rk.get("city", "riyadh") in ("riyadh", "jeddah", "eastern") else r["city_other_mult"]
         gender_mult = r["gender_female_mult"] if rk.get("gender") == "female" else r["gender_male_mult"]
         acc_mult = r["has_accidents_mult"] if rk.get("has_accidents") == "yes" else r["no_accidents_mult"]
         cars_mult = r["multi_car_mult"] if rk.get("cars_count") == "multiple" else r["single_car_mult"]
         risk_mult = city_mult * gender_mult * acc_mult * cars_mult
 
-    return round(base * age_mult * use_mult * km_mult * jitter * risk_mult, 2)
+    if coverage == "Comprehensive":
+        tier_rate = max(0.02, min(0.05, base / 50_000))
+        base = max(500.0, max(value, 5000.0) * tier_rate)
+    premium = base * age_mult * use_mult * km_mult * jitter * risk_mult
+    if coverage == "Comprehensive":
+        premium = max(500.0, premium)
+    return round(premium, 2)
+
+
+def _active_offer_packages(provider_id: str, coverage: str, age: int, value: float, usage: str, mileage: str | None, serial: str, risk: dict) -> list[dict]:
+    conn = sqlite3.connect(DB_PATH); conn.row_factory = sqlite3.Row
+    offers = conn.execute("SELECT * FROM Company_Offers WHERE ProviderId=? AND CoverageType=? AND IsActive=1 ORDER BY BasePremiumRate", (provider_id, coverage)).fetchall()
+    conn.close()
+    result = []
+    for offer in offers:
+        try: addons = json.loads(offer["AddOnsJson"] or "[]")
+        except (ValueError, TypeError): addons = []
+        premium = price(provider_id, age, value, coverage, usage, mileage, serial, custom_risk=risk, base_override=float(offer["BasePremiumRate"]))
+        result.append({"id": offer["OfferId"], "name": offer["OfferName"], "description": offer["Description"] or "", "premium": premium, "deductible": float(offer["Deductible"]), "addons": addons})
+    return result
 
 
 def _ref(provider_id: str, serial: str, coverage: str) -> str:
@@ -445,10 +547,6 @@ def _special(fault: str | None, empty_body: dict):
     return None
 
 
-def _use_live_risk() -> dict | None:
-    return None if "PYTEST_CURRENT_TEST" in os.environ else ACTIVE_CUSTOMER_RISK
-
-
 # =============================================================================
 # 1. نقاط اتصال الـ API للشركات الأربع
 # =============================================================================
@@ -465,26 +563,48 @@ class TawuniyaRequest(BaseModel):
     vehicle: _TawVehicle
     coverage: Literal["TPL", "COMP"]
     usage: str
+    annual_mileage: str = "medium"
+    city: str = "riyadh"
+    gender: str = "male"
+    has_accidents: str = "no"
+    cars_count: str = "single"
     annual_mileage: str | None = None
+    city: str = "riyadh"
+    gender: str = "male"
+    has_accidents: str = "no"
+    cars_count: str = "single"
 
 
 @app.post("/tawuniya/quotes")
 async def tawuniya_quotes(body: TawuniyaRequest, x_api_key: str | None = Header(default=None)):
     _check_key("tawuniya", x_api_key)
     fault = await _gate("tawuniya")
-    if r := _special(fault, {"insurer": "tawuniya", "packages": []}):
-        return r
+    if r := _special(fault, {"insurer": "tawuniya", "packages": []}): return r
     cov = "TPL" if body.coverage == "TPL" else "Comprehensive"
-    prem = price("tawuniya", _age_from_birth(body.birth_date), 0, cov, body.usage, body.annual_mileage, body.vehicle.serial, custom_risk=_use_live_risk())
+    offers = _active_offer_packages(
+        "tawuniya",
+        cov,
+        _age_from_birth(body.birth_date),
+        body.vehicle.value,
+        body.usage,
+        body.annual_mileage,
+        body.vehicle.serial,
+        body.model_dump(),
+    )
     return {
         "insurer": "tawuniya",
-        "packages": [{
-            "package_id": f"TAW-{_ref('tawuniya', body.vehicle.serial, cov)}",
-            "coverage": body.coverage,
-            "premium_sar": prem,
-            "deductible_sar": PRICING_RULES["tawuniya"]["deductible"],
-            "add_ons": PRICING_RULES["tawuniya"]["addons"],
-        }],
+        "packages": [
+            {
+                "package_id": f"TAW-{offer['id']}-{_ref('tawuniya', body.vehicle.serial, cov)}",
+                "coverage": body.coverage,
+                "premium_sar": offer["premium"],
+                "deductible_sar": offer["deductible"],
+                "add_ons": offer["addons"],
+                "plan_name": offer["name"],
+                "plan_description": offer["description"],
+            }
+            for offer in offers
+        ],
     }
 
 
@@ -504,24 +624,34 @@ class RajhiRequest(BaseModel):
     car: _RajhiCar
     product: Literal["THIRD_PARTY", "COMPREHENSIVE"]
     use: str
+    annual_mileage: str = "medium"
+    risk: dict = {}
 
 
 @app.post("/rajhi/offers")
 async def rajhi_offers(body: RajhiRequest, authorization: str | None = Header(default=None)):
-    _check_key("rajhi", _bearer(authorization))
-    fault = await _gate("rajhi")
-    if r := _special(fault, {"data": {"offers": []}}):
-        return r
+    _check_key("rajhi", _bearer(authorization)); fault = await _gate("rajhi")
+    if r := _special(fault, {"data": {"offers": []}}): return r
     cov = "TPL" if body.product == "THIRD_PARTY" else "Comprehensive"
-    prem = price("rajhi", _age_from_birth(body.customer.dob), 0, cov, body.use, None, body.car.sequence_no, custom_risk=_use_live_risk())
+    offers = _active_offer_packages("rajhi", cov, _age_from_birth(body.customer.dob), body.car.market_value, body.use, body.annual_mileage, body.car.sequence_no, body.risk)
     return {
-        "data": {"offers": [{
-            "id": f"RJ{_ref('rajhi', body.car.sequence_no, cov)}",
-            "type": body.product,
-            "price": {"amount": prem, "currency": "SAR"},
-            "excess": PRICING_RULES["rajhi"]["deductible"],
-            "extras": PRICING_RULES["rajhi"]["addons"],
-        }]}
+        "data": {
+            "offers": [
+                {
+                    "id": f"RJ{offer['id']}-{_ref('rajhi', body.car.sequence_no, cov)}",
+                    "type": body.product,
+                    "price": {
+                        "amount": offer["premium"],
+                        "currency": "SAR",
+                    },
+                    "excess": offer["deductible"],
+                    "extras": offer["addons"],
+                    "name": offer["name"],
+                    "description": offer["description"],
+                }
+                for offer in offers
+            ]
+        }
     }
 
 
@@ -534,24 +664,40 @@ class MedgulfRequest(BaseModel):
     plan: Literal["ضد الغير", "شامل"]
     purpose: str
     mileage: str | None = None
+    city: str = "riyadh"
+    gender: str = "male"
+    has_accidents: str = "no"
+    cars_count: str = "single"
 
 
 @app.post("/medgulf/plans")
 async def medgulf_plans(body: MedgulfRequest, x_api_key: str | None = Header(default=None)):
-    _check_key("medgulf", x_api_key)
-    fault = await _gate("medgulf")
-    if r := _special(fault, {"result": []}):
-        return r
+    _check_key("medgulf", x_api_key); fault = await _gate("medgulf")
+    if r := _special(fault, {"result": []}): return r
     cov = "TPL" if body.plan == "ضد الغير" else "Comprehensive"
-    prem = price("medgulf", _age_from_birth(body.birthDate), 0, cov, body.purpose, body.mileage, body.chassis, custom_risk=_use_live_risk())
+    offers = _active_offer_packages(
+        "medgulf",
+        cov,
+        _age_from_birth(body.birthDate),
+        body.value,
+        body.purpose,
+        body.mileage,
+        body.chassis,
+        body.model_dump(),
+    )
     return {
-        "result": [{
-            "ref": f"MG-{_ref('medgulf', body.chassis, cov)}",
-            "plan": body.plan,
-            "annual_cost": f"{prem:.2f}",
-            "deductible": str(int(PRICING_RULES["medgulf"]["deductible"])),
-            "options": ",".join(PRICING_RULES["medgulf"]["addons"]),
-        }]
+        "result": [
+            {
+                "ref": f"MG{offer['id']}-{_ref('medgulf', body.chassis, cov)}",
+                "plan": body.plan,
+                "annual_cost": f"{offer['premium']:.2f}",
+                "deductible": str(int(offer["deductible"])),
+                "options": ",".join(offer["addons"]),
+                "name": offer["name"],
+                "description": offer["description"],
+            }
+            for offer in offers
+        ]
     }
 
 
@@ -563,24 +709,41 @@ class AcigRequest(BaseModel):
     vehicle_value: float = 0.0
     cover_type: Literal["TPL", "COMPREHENSIVE"]
     usage: str
+    annual_mileage: str = "medium"
+    city: str = "riyadh"
+    gender: str = "male"
+    has_accidents: str = "no"
+    cars_count: str = "single"
 
 
 @app.post("/acig/quote")
 async def acig_quote(body: AcigRequest, x_api_key: str | None = Header(default=None)):
-    _check_key("acig", x_api_key)
-    fault = await _gate("acig")
-    if r := _special(fault, {"quotes": []}):
-        return r
+    _check_key("acig", x_api_key); fault = await _gate("acig")
+    if r := _special(fault, {"quotes": []}): return r
     cov = "TPL" if body.cover_type == "TPL" else "Comprehensive"
-    prem = price("acig", body.age, 0, cov, body.usage, None, body.vehicle_serial, custom_risk=_use_live_risk())
+    offers = _active_offer_packages(
+        "acig",
+        cov,
+        body.age,
+        body.vehicle_value,
+        body.usage,
+        body.annual_mileage,
+        body.vehicle_serial,
+        body.model_dump(),
+    )
     return {
-        "quotes": [{
-            "quote_ref": f"AC{_ref('acig', body.vehicle_serial, cov)}",
-            "product": body.cover_type,
-            "premium_halalas": int(round(prem * 100)),
-            "co_pay": PRICING_RULES["acig"]["deductible"],
-            "addons": PRICING_RULES["acig"]["addons"],
-        }]
+        "quotes": [
+            {
+                "quote_ref": f"AC{offer['id']}-{_ref('acig', body.vehicle_serial, cov)}",
+                "product": body.cover_type,
+                "premium_halalas": int(round(offer["premium"] * 100)),
+                "co_pay": offer["deductible"],
+                "addons": offer["addons"],
+                "name": offer["name"],
+                "description": offer["description"],
+            }
+            for offer in offers
+        ]
     }
 
 
@@ -599,29 +762,44 @@ class AdminLoginRequest(BaseModel):
     password: str
 
 
+_login_failures: dict[tuple[str, str], list[datetime]] = {}
+
+
 @app.post("/portal/api/admin/login")
-def admin_login(body: AdminLoginRequest):
-    creds = ADMIN_CREDENTIALS.get(body.provider_id)
-    if not creds or body.username.strip() != creds["username"] or body.password != creds["password"]:
+def admin_login(body: AdminLoginRequest, request: Request):
+    ip = request.client.host if request.client else "unknown"
+    key = (body.provider_id, ip)
+    cutoff = datetime.now() - timedelta(minutes=10)
+    attempts = [when for when in _login_failures.get(key, []) if when > cutoff]
+    _login_failures[key] = attempts
+    if len(attempts) >= 5:
+        raise HTTPException(status_code=429, detail="تم تجاوز عدد محاولات الدخول، حاول بعد 10 دقائق")
+    conn = sqlite3.connect(DB_PATH)
+    row = conn.execute("SELECT Username, PasswordSalt, PasswordHash FROM Company_Admins WHERE ProviderId=?", (body.provider_id,)).fetchone()
+    if row:
+        digest = hashlib.pbkdf2_hmac("sha256", body.password.encode(), row[1], 310000)
+        valid = body.username.strip() == row[0] and hmac.compare_digest(digest, row[2])
+    else:
+        valid = False
+    if not valid:
+        _login_failures[key] = attempts + [datetime.now()]
+        conn.close()
         raise HTTPException(status_code=401, detail="اسم المستخدم أو كلمة المرور غير صحيحة")
-    token = hashlib.sha256(f"auth|{body.provider_id}|{body.username}".encode()).hexdigest()[:16]
+    _login_failures.pop(key, None)
+    token = __import__("secrets").token_urlsafe(32)
+    conn.execute("INSERT INTO Admin_Sessions VALUES(?,?,datetime('now','+8 hours'))", (hashlib.sha256(token.encode()).hexdigest(), body.provider_id))
+    conn.commit(); conn.close()
     return {"status": "ok", "token": token, "provider_id": body.provider_id}
 
 
-class CustomerContextUpdate(BaseModel):
-    city: str = "riyadh"
-    gender: str = "male"
-    has_accidents: str = "no"
-    cars_count: str = "single"
-
-
-@app.post("/portal/api/customer-context")
-def set_customer_context(body: CustomerContextUpdate):
-    ACTIVE_CUSTOMER_RISK["city"] = body.city
-    ACTIVE_CUSTOMER_RISK["gender"] = body.gender
-    ACTIVE_CUSTOMER_RISK["has_accidents"] = body.has_accidents
-    ACTIVE_CUSTOMER_RISK["cars_count"] = body.cars_count
-    return {"status": "ok", "active_risk": ACTIVE_CUSTOMER_RISK}
+@app.post("/portal/api/admin/logout")
+def admin_logout(authorization: str | None = Header(default=None)):
+    provider = _session_provider(authorization)
+    token = authorization[7:].strip()
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute("DELETE FROM Admin_Sessions WHERE TokenHash=?", (hashlib.sha256(token.encode()).hexdigest(),))
+    conn.commit(); conn.close()
+    return {"status": "ok"}
 
 
 @app.get("/portal/api/company/{provider_id}")
@@ -630,14 +808,22 @@ def get_single_company_data(provider_id: str):
         raise HTTPException(status_code=404, detail="الشركة غير موجودة")
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
-    offers = [dict(r) for r in conn.execute("SELECT * FROM Company_Offers WHERE ProviderId = ? ORDER BY BasePremiumRate ASC", (provider_id,)).fetchall()]
-    policies = [dict(r) for r in conn.execute("SELECT * FROM Issued_Policies WHERE ProviderId = ? ORDER BY PolicyId DESC LIMIT 30", (provider_id,)).fetchall()]
+    offers = [dict(r) for r in conn.execute("SELECT * FROM Company_Offers WHERE ProviderId = ? AND IsActive=1 ORDER BY BasePremiumRate ASC", (provider_id,)).fetchall()]
     conn.close()
     return {
         "company": PRICING_RULES[provider_id],
         "offers": offers,
-        "policies": policies,
     }
+
+
+@app.get("/portal/api/admin/company/{provider_id}")
+def get_admin_company_data(provider_id: str, authorization: str | None = Header(default=None)):
+    _session_provider(authorization, provider_id)
+    conn = sqlite3.connect(DB_PATH); conn.row_factory = sqlite3.Row
+    offers = [dict(r) for r in conn.execute("SELECT * FROM Company_Offers WHERE ProviderId=? ORDER BY BasePremiumRate", (provider_id,)).fetchall()]
+    policies = [dict(r) for r in conn.execute("SELECT * FROM Issued_Policies WHERE ProviderId=? ORDER BY PolicyId DESC LIMIT 30", (provider_id,)).fetchall()]
+    conn.close()
+    return {"company": PRICING_RULES[provider_id], "offers": offers, "policies": policies}
 
 
 class PricingRuleUpdate(BaseModel):
@@ -656,7 +842,8 @@ class PricingRuleUpdate(BaseModel):
 
 
 @app.put("/portal/api/pricing/{provider_id}")
-def update_pricing_rules(provider_id: str, body: PricingRuleUpdate):
+def update_pricing_rules(provider_id: str, body: PricingRuleUpdate, authorization: str | None = Header(default=None)):
+    _session_provider(authorization, provider_id)
     if provider_id not in PRICING_RULES:
         raise HTTPException(status_code=404, detail="الشركة غير موجودة")
 
@@ -701,65 +888,115 @@ class OfferCreateModel(BaseModel):
     provider_id: str
     offer_name: str
     coverage_type: Literal["TPL", "Comprehensive"]
-    base_premium_rate: float
+    base_premium_rate: float = Field(gt=0)
     description: str = ""
+    deductible: float = Field(default=1500, ge=0)
+    addons: list[str] = []
 
 
 @app.post("/portal/api/offers")
-def add_company_offer(body: OfferCreateModel):
+def add_company_offer(body: OfferCreateModel, authorization: str | None = Header(default=None)):
+    _session_provider(authorization, body.provider_id)
     if body.provider_id not in PRICING_RULES:
         raise HTTPException(status_code=404, detail="الشركة غير موجودة")
 
     conn = sqlite3.connect(DB_PATH)
     conn.execute(
         """
-        INSERT INTO Company_Offers (ProviderId, OfferName, CoverageType, BasePremiumRate, MinPremium, Description, IsActive)
-        VALUES (?, ?, ?, ?, ?, ?, 1)
+        INSERT INTO Company_Offers (ProviderId, OfferName, CoverageType, BasePremiumRate, MinPremium, Description, Deductible, AddOnsJson, IsActive)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
         """,
-        (body.provider_id, body.offer_name.strip(), body.coverage_type, body.base_premium_rate, body.base_premium_rate, body.description.strip())
+        (body.provider_id, body.offer_name.strip(), body.coverage_type, body.base_premium_rate, body.base_premium_rate, body.description.strip(), body.deductible, json.dumps(body.addons))
     )
     conn.commit()
     conn.close()
-
-    if body.coverage_type == "TPL":
-        PRICING_RULES[body.provider_id]["tpl_base"] = float(body.base_premium_rate)
-    else:
-        PRICING_RULES[body.provider_id]["comp_base"] = float(body.base_premium_rate)
 
     return {"message": "تم إضافة العرض بنجاح!"}
 
 
 @app.delete("/portal/api/offers/{offer_id}")
-def delete_company_offer(offer_id: int):
+def delete_company_offer(offer_id: int, authorization: str | None = Header(default=None)):
+    provider_id = _session_provider(authorization)
     conn = sqlite3.connect(DB_PATH)
-    conn.execute("DELETE FROM Company_Offers WHERE OfferId = ?", (offer_id,))
+    conn.execute("DELETE FROM Company_Offers WHERE OfferId = ? AND ProviderId = ?", (offer_id, provider_id))
     conn.commit()
     conn.close()
     return {"message": "تم حذف العرض"}
+
+
+class OfferPatchModel(BaseModel):
+    offer_name: str | None = None
+    coverage_type: Literal["TPL", "Comprehensive"] | None = None
+    base_premium_rate: float | None = Field(default=None, gt=0)
+    description: str | None = None
+    deductible: float | None = Field(default=None, ge=0)
+    addons: list[str] | None = None
+    is_active: bool | None = None
+
+
+@app.patch("/portal/api/offers/{offer_id}")
+def update_company_offer(offer_id: int, body: OfferPatchModel, authorization: str | None = Header(default=None)):
+    """Update only fields supplied by an authenticated provider administrator."""
+    provider_id = _session_provider(authorization)
+    # Restrict SQL identifiers to these fixed columns; client values are bound separately.
+    allowed_updates = {
+        "OfferName": body.offer_name,
+        "CoverageType": body.coverage_type,
+        "BasePremiumRate": body.base_premium_rate,
+        "Description": body.description,
+        "Deductible": body.deductible,
+        "AddOnsJson": json.dumps(body.addons) if body.addons is not None else None,
+        "IsActive": int(body.is_active) if body.is_active is not None else None,
+    }
+    updates = {
+        column: value
+        for column, value in allowed_updates.items()
+        if value is not None
+    }
+    if not updates:
+        raise HTTPException(status_code=422, detail="no offer fields provided")
+    conn = sqlite3.connect(DB_PATH)
+    assignments = ", ".join(f"{column}=?" for column in updates)
+    cursor = conn.execute(
+        f"UPDATE Company_Offers SET {assignments}, UpdatedAt=datetime('now') "
+        "WHERE OfferId=? AND ProviderId=?",
+        (*updates.values(), offer_id, provider_id),
+    )
+    conn.commit()
+    conn.close()
+    if cursor.rowcount == 0:
+        raise HTTPException(status_code=404, detail="العرض غير موجود")
+    return {"status": "ok"}
 
 
 class PolicyPurchaseModel(BaseModel):
     provider_id: str
     offer_name: str
     customer_name: str
-    national_id: str
-    phone: str
-    vehicle_serial: str
+    national_id: str = Field(pattern=r"^[12]\d{9}$")
+    phone: str = Field(pattern=r"^(?:05\d{8}|\+9665\d{8})$")
+    vehicle_serial: str = Field(min_length=6, max_length=17, pattern=r"^[A-Za-z0-9]{6,17}$")
     city: str = "riyadh"
     gender: str = "male"
     has_accidents: str = "no"
     cars_count: str = "single"
     coverage_type: str
-    total_amount: float
+    total_amount: float = Field(gt=0)
     payment_method: str
-    card_last4: str = "0000"
+    card_last4: str = Field(default="0000", pattern=r"^\d{4}$")
 
 
 @app.post("/portal/api/purchase")
 def purchase_policy(body: PolicyPurchaseModel):
-    p_name = PRICING_RULES.get(body.provider_id, {}).get("name", "شركة التأمين")
-    policy_no = f"POL-{body.provider_id[:3].upper()}-{datetime.now().strftime('%Y%m%d')}-{hashlib.md5(f'{body.national_id}{datetime.now().timestamp()}'.encode()).hexdigest()[:5].upper()}"
+    if body.provider_id not in PROVIDERS:
+        raise HTTPException(status_code=404, detail="الشركة غير موجودة")
     conn = sqlite3.connect(DB_PATH)
+    offer = conn.execute("SELECT OfferId FROM Company_Offers WHERE ProviderId=? AND OfferName=? AND CoverageType=? AND IsActive=1", (body.provider_id, body.offer_name, body.coverage_type)).fetchone()
+    if offer is None:
+        conn.close()
+        raise HTTPException(status_code=422, detail="العرض غير متاح")
+    p_name = PRICING_RULES[body.provider_id]["name"]
+    policy_no = f"POL-{body.provider_id[:3].upper()}-{datetime.now().strftime('%Y%m%d')}-{hashlib.md5(f'{body.national_id}{datetime.now().timestamp()}'.encode()).hexdigest()[:5].upper()}"
     conn.execute(
         """
         INSERT INTO Issued_Policies
@@ -1240,14 +1477,26 @@ def _render_independent_company_site(provider_id: str) -> str:
         let companyData = {{ company: {{}}, offers: [], policies: [] }};
         let activeOrder = null;
         let currentCovFilter = 'ALL';
-        let isAdminAuthenticated = sessionStorage.getItem('admin_auth_' + PROVIDER_ID) === '1';
+        let adminToken = sessionStorage.getItem('admin_token_' + PROVIDER_ID) || '';
+        let isAdminAuthenticated = Boolean(adminToken);
 
         async function loadCompanyPortal() {{
             const res = await fetch(`/portal/api/company/${{PROVIDER_ID}}`);
             companyData = await res.json();
             applyUrlCustomerParams();
             renderCompanyOffers();
-            populateAdmin();
+            if (isAdminAuthenticated) await loadAdminCompany();
+        }}
+
+        async function adminFetch(url, options = {{}}) {{
+            const res = await fetch(url, {{...options, headers: {{...(options.headers || {{}}), Authorization: `Bearer ${{adminToken}}`}}}});
+            if (res.status === 401) {{ adminToken = ''; isAdminAuthenticated = false; sessionStorage.removeItem('admin_token_' + PROVIDER_ID); switchView('admin'); }}
+            return res;
+        }}
+
+        async function loadAdminCompany() {{
+            const res = await adminFetch(`/portal/api/admin/company/${{PROVIDER_ID}}`);
+            if (res.ok) {{ companyData = await res.json(); populateAdmin(); }}
         }}
 
         function setCovFilter(cov) {{
@@ -1312,14 +1561,19 @@ def _render_independent_company_site(provider_id: str) -> str:
                 return;
             }}
 
+            const login = await res.json();
+            adminToken = login.token;
             isAdminAuthenticated = true;
-            sessionStorage.setItem('admin_auth_' + PROVIDER_ID, '1');
+            sessionStorage.setItem('admin_token_' + PROVIDER_ID, adminToken);
             switchView('admin');
+            await loadAdminCompany();
         }}
 
-        function logoutAdmin() {{
+        async function logoutAdmin() {{
+            if (adminToken) await fetch('/portal/api/admin/logout', {{method: 'POST', headers: {{Authorization: `Bearer ${{adminToken}}`}}}});
             isAdminAuthenticated = false;
-            sessionStorage.removeItem('admin_auth_' + PROVIDER_ID);
+            adminToken = '';
+            sessionStorage.removeItem('admin_token_' + PROVIDER_ID);
             switchView('admin');
         }}
 
@@ -1503,7 +1757,7 @@ def _render_independent_company_site(provider_id: str) -> str:
             msg.textContent = data.message;
             msg.classList.remove('hidden');
             setTimeout(() => msg.classList.add('hidden'), 4000);
-            await loadCompanyPortal();
+            await loadAdminCompany();
         }}
 
         async function addOffer(e) {{
@@ -1515,18 +1769,18 @@ def _render_independent_company_site(provider_id: str) -> str:
                 base_premium_rate: parseFloat(document.getElementById('of-rate').value),
                 description: document.getElementById('of-desc').value
             }};
-            await fetch('/portal/api/offers', {{
+            await adminFetch('/portal/api/offers', {{
                 method: 'POST',
                 headers: {{ 'Content-Type': 'application/json' }},
                 body: JSON.stringify(body)
             }});
             e.target.reset();
-            await loadCompanyPortal();
+            await loadAdminCompany();
         }}
 
         async function deleteOffer(id) {{
             await fetch(`/portal/api/offers/${{id}}`, {{ method: 'DELETE' }});
-            await loadCompanyPortal();
+            await loadAdminCompany();
         }}
 
         function openCheckout(offerName, covType, basePrice) {{
@@ -1607,7 +1861,7 @@ def _render_independent_company_site(provider_id: str) -> str:
             if (!banner.classList.contains('hidden')) {{
                 document.getElementById('rec-banner-title').innerHTML = `<i class="fa-solid fa-circle-check text-emerald-300 ml-1"></i> تم إصدار وثيقتك بنجاح (${{data.policy_number}})`;
             }}
-            await loadCompanyPortal();
+            await loadAdminCompany();
         }}
 
         loadCompanyPortal();

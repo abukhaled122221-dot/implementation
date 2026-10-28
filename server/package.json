@@ -4,10 +4,17 @@
   "description": "Thiqa Car Insurance - Node.js orchestrator/server (Layer 1 + gateway to Layer 2 agents)",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js"
+    "start": "node --disable-warning=ExperimentalWarning server.js",
+    "dev": "node --disable-warning=ExperimentalWarning --watch server.js",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js",
+    "create-admin": "node --disable-warning=ExperimentalWarning scripts/create-admin.js"
   },
   "dependencies": {
-    "express": "^4.19.2"
+    "express": "^4.22.3",
+    "bcryptjs": "^3.0.2",
+    "cookie-parser": "^1.4.7"
+  },
+  "engines": {
+    "node": ">=22.13"
   }
 }

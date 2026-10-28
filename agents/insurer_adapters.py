@@ -65,7 +65,16 @@ def _normalize_addons(raw) -> list[str]:
     return out
 
 
-def _unify(insurer: dict, raw_id, coverage, premium, deductible, add_ons) -> dict:
+def _unify(
+    insurer: dict,
+    raw_id,
+    coverage,
+    premium,
+    deductible,
+    add_ons,
+    plan_name=None,
+    plan_description=None,
+) -> dict:
     """يبني عرضاً موحداً، ويرفع ValueError لو القيم غير منطقية."""
     cov = normalize_coverage(coverage)
     if cov is None:
@@ -76,7 +85,7 @@ def _unify(insurer: dict, raw_id, coverage, premium, deductible, add_ons) -> dic
         raise ValueError("premium must be positive")
     if deductible < 0:
         raise ValueError("deductible must be >= 0")
-    return {
+    quote = {
         "quote_id": f"{insurer['provider_id']}_{raw_id}",
         "provider_id": insurer["provider_id"],
         "provider_name": insurer["name"],
@@ -89,6 +98,9 @@ def _unify(insurer: dict, raw_id, coverage, premium, deductible, add_ons) -> dic
         "digital_score": insurer["digital_score"],
         "retrieved_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }
+    if plan_name: quote["plan_name"] = str(plan_name)
+    if plan_description: quote["plan_description"] = str(plan_description)
+    return quote
 
 
 def _run_items(items, insurer, extract) -> tuple[list[dict], int]:
@@ -127,6 +139,7 @@ def _tawuniya_payload(p: dict) -> dict:
         "coverage": "TPL" if p["coverage_type"] == "TPL" else "COMP",
         "usage": p["purpose_of_use"],
         "annual_mileage": p["annual_mileage"],
+        **{k: p[k] for k in ("city", "gender", "has_accidents", "cars_count")},
     }
 
 
@@ -134,7 +147,7 @@ def _tawuniya_normalize(raw: dict, insurer: dict):
     packages = _dig(raw, "packages")
     return _run_items(
         packages, insurer,
-        lambda x: (x["package_id"], x["coverage"], x["premium_sar"], x["deductible_sar"], x.get("add_ons")),
+        lambda x: (x["package_id"], x["coverage"], x["premium_sar"], x["deductible_sar"], x.get("add_ons"), x.get("plan_name"), x.get("plan_description")),
     )
 
 
@@ -152,6 +165,8 @@ def _rajhi_payload(p: dict) -> dict:
         },
         "product": "THIRD_PARTY" if p["coverage_type"] == "TPL" else "COMPREHENSIVE",
         "use": _RAJHI_USE.get(p["purpose_of_use"], "PRIVATE"),
+        "risk": {k: p[k] for k in ("city", "gender", "has_accidents", "cars_count")},
+        "annual_mileage": p["annual_mileage"],
     }
 
 
@@ -162,7 +177,7 @@ def _rajhi_normalize(raw: dict, insurer: dict):
         price = x["price"]
         if price.get("currency", "SAR") != "SAR":
             raise ValueError("unsupported currency")
-        return (x["id"], x["type"], price["amount"], x["excess"], x.get("extras"))
+        return (x["id"], x["type"], price["amount"], x["excess"], x.get("extras"), x.get("name"), x.get("description"))
 
     return _run_items(offers, insurer, extract)
 
@@ -178,6 +193,8 @@ def _medgulf_payload(p: dict) -> dict:
         "plan": "ضد الغير" if p["coverage_type"] == "TPL" else "شامل",
         "purpose": p["purpose_of_use"],
         "mileage": p["annual_mileage"],
+        "city": p["city"], "gender": p["gender"],
+        "has_accidents": p["has_accidents"], "cars_count": p["cars_count"],
     }
 
 
@@ -186,7 +203,7 @@ def _medgulf_normalize(raw: dict, insurer: dict):
     # ميدغلف ترجع الأرقام كنصوص ("469.00") والإضافات كنص مفصول بفواصل
     return _run_items(
         result, insurer,
-        lambda x: (x["ref"], x["plan"], x["annual_cost"], x["deductible"], x.get("options")),
+        lambda x: (x["ref"], x["plan"], x["annual_cost"], x["deductible"], x.get("options"), x.get("name"), x.get("description")),
     )
 
 
@@ -200,6 +217,9 @@ def _acig_payload(p: dict) -> dict:
         "vehicle_value": p["vehicle_value"],
         "cover_type": "TPL" if p["coverage_type"] == "TPL" else "COMPREHENSIVE",
         "usage": p["purpose_of_use"],
+        "annual_mileage": p["annual_mileage"],
+        "city": p["city"], "gender": p["gender"],
+        "has_accidents": p["has_accidents"], "cars_count": p["cars_count"],
     }
 
 
@@ -208,7 +228,7 @@ def _acig_normalize(raw: dict, insurer: dict):
     # ACIG ترجع القسط بالهللات (42800 = 428.00 ريال)
     return _run_items(
         quotes, insurer,
-        lambda x: (x["quote_ref"], x["product"], _to_number(x["premium_halalas"]) / 100, x["co_pay"], x.get("addons")),
+        lambda x: (x["quote_ref"], x["product"], _to_number(x["premium_halalas"]) / 100, x["co_pay"], x.get("addons"), x.get("name"), x.get("description")),
     )
 
 
