@@ -1,6 +1,8 @@
 /**
- * Process entry point: construct dependencies and start the HTTP listener.
+ * Process entry point: load local environment, construct dependencies and start HTTP.
  */
+require("./load-env");
+
 const { openDb } = require("./db/connection");
 const { createApp } = require("./app");
 
