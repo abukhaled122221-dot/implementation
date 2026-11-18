@@ -1,10 +1,4 @@
-C:\Users\elyas\OneDrive\سطح المكتب\imp\agents\mock_insurer_api.py:2002: SyntaxWarning: "\D" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\D"? A raw string is also an option.
-  def rajhi_independent_website():
-C:\Users\elyas\OneDrive\سطح المكتب\imp\agents\mock_insurer_api.py:1996: SyntaxWarning: "\d" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\d"? A raw string is also an option.
-  @app.get("/tawuniya", response_class=HTMLResponse)
-C:\Users\elyas\OneDrive\سطح المكتب\imp\agents\mock_insurer_api.py:1995: SyntaxWarning: "\d" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\d"? A raw string is also an option.
-  
-INFO:     Started server process [9112]
+INFO:     Started server process [18704]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://127.0.0.1:8001 (Press CTRL+C to quit)
